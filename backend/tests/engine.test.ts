@@ -87,16 +87,13 @@ describe('applyReview — pass cases (quality >= 3)', () => {
   });
 
   it('next_due_date is interval days from now', () => {
-    const before = Date.now();
+    const fixedNow = 1_700_000_000_000; // fixed timestamp
     const result = applyReview(
       { interval: 1, ease_factor: 2.5, repetitions: 1 },
-      'easy'
+      'easy',
+      fixedNow
     );
-    const after = Date.now();
-    // interval for rep=1, quality=5: still 6 days
-    const expectedMin = before + 6 * 86_400_000;
-    const expectedMax = after + 6 * 86_400_000;
-    expect(result.next_due_date).toBeGreaterThanOrEqual(expectedMin);
-    expect(result.next_due_date).toBeLessThanOrEqual(expectedMax);
+    // rep=1 → interval=6
+    expect(result.next_due_date).toBe(fixedNow + 6 * 86_400_000);
   });
 });

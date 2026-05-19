@@ -20,7 +20,7 @@ export function mapQuality(quality: ReviewQuality): number {
   return map[quality];
 }
 
-export function applyReview(card: CardState, quality: ReviewQuality): ReviewResult {
+export function applyReview(card: CardState, quality: ReviewQuality, now: number = Date.now()): ReviewResult {
   const q = mapQuality(quality);
 
   let { interval, ease_factor, repetitions } = card;
@@ -37,11 +37,11 @@ export function applyReview(card: CardState, quality: ReviewQuality): ReviewResu
       interval = Math.round(interval * ease_factor);
     }
     ease_factor = ease_factor + 0.1 - (5 - q) * (0.08 + (5 - q) * 0.02);
-    ease_factor = Math.max(1.3, parseFloat(ease_factor.toFixed(4)));
+    ease_factor = Math.max(1.3, Math.round(ease_factor * 10000) / 10000);
     repetitions += 1;
   }
 
-  const next_due_date = Date.now() + interval * 86_400_000;
+  const next_due_date = now + interval * 86_400_000;
 
   return { interval, ease_factor, repetitions, next_due_date };
 }
