@@ -19,6 +19,7 @@ export function buildApp(dbPath: string): FastifyInstance {
   app.post('/api/users', async (req, reply) => {
     const { user_id } = req.body as { user_id?: string };
     if (!user_id) return reply.status(400).send({ error: 'user_id required' });
+    if (user_id.length > 200) return reply.status(400).send({ error: 'user_id too long (max 200 chars)' });
     createUser(db, user_id);
     return reply.status(201).send({ ok: true, user_id });
   });
@@ -28,6 +29,8 @@ export function buildApp(dbPath: string): FastifyInstance {
     const { user_id, item_id } = req.body as { user_id?: string; item_id?: string };
     if (!user_id || !item_id)
       return reply.status(400).send({ error: 'user_id and item_id required' });
+    if (user_id.length > 200 || item_id.length > 200)
+      return reply.status(400).send({ error: 'user_id and item_id must be 200 chars or less' });
     try {
       addItem(db, user_id, item_id);
       return reply.status(201).send({ ok: true, item_id });
@@ -40,6 +43,9 @@ export function buildApp(dbPath: string): FastifyInstance {
       }
       if (err.message.startsWith('USER_NOT_FOUND')) {
         return reply.status(404).send({ error: 'USER_NOT_FOUND', message: 'User not found' });
+      }
+      if (err.message.includes('UNIQUE constraint failed')) {
+        return reply.status(409).send({ error: 'DUPLICATE_ITEM', message: 'Item ID already exists.' });
       }
       throw err;
     }
