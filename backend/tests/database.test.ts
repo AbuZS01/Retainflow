@@ -85,16 +85,24 @@ describe('updateItem', () => {
   it('persists new SM-2 values', () => {
     createUser(db, 'user-upd');
     addItem(db, 'user-upd', 'card-1');
+    const futureDate = Date.now() + 15 * 86_400_000;
     updateItem(db, 'card-1', {
       interval: 15,
       ease_factor: 2.6,
       repetitions: 3,
-      next_due_date: Date.now() + 15 * 86_400_000,
+      next_due_date: futureDate,
     });
-    const items = db.prepare("SELECT * FROM items WHERE item_id = 'card-1'").get() as any;
-    expect(items.interval).toBe(15);
-    expect(items.ease_factor).toBeCloseTo(2.6, 4);
-    expect(items.repetitions).toBe(3);
+    const row = db.prepare("SELECT * FROM items WHERE item_id = 'card-1'").get() as any;
+    expect(row.interval).toBe(15);
+    expect(row.ease_factor).toBeCloseTo(2.6, 4);
+    expect(row.repetitions).toBe(3);
+    expect(row.next_due_date).toBe(futureDate);
+  });
+
+  it('throws ITEM_NOT_FOUND when item does not exist', () => {
+    expect(() =>
+      updateItem(db, 'nonexistent', { interval: 1, ease_factor: 2.5, repetitions: 0, next_due_date: 0 })
+    ).toThrow('ITEM_NOT_FOUND');
   });
 });
 
@@ -105,5 +113,15 @@ describe('deleteItem', () => {
     deleteItem(db, 'to-delete');
     const row = db.prepare("SELECT * FROM items WHERE item_id = 'to-delete'").get();
     expect(row).toBeUndefined();
+  });
+
+  it('throws ITEM_NOT_FOUND when item does not exist', () => {
+    expect(() => deleteItem(db, 'ghost-item')).toThrow('ITEM_NOT_FOUND');
+  });
+});
+
+describe('addItem — error cases', () => {
+  it('throws USER_NOT_FOUND when user does not exist', () => {
+    expect(() => addItem(db, 'nobody', 'item-x')).toThrow('USER_NOT_FOUND');
   });
 });

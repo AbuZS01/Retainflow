@@ -21,6 +21,7 @@ export interface ItemRow {
 export function initDb(path: string): Db {
   const db = new Database(path);
   db.pragma('journal_mode = WAL');
+  db.pragma('foreign_keys = ON');
   db.exec(`
     CREATE TABLE IF NOT EXISTS users (
       user_id   TEXT PRIMARY KEY,
@@ -36,6 +37,8 @@ export function initDb(path: string): Db {
       next_due_date INTEGER NOT NULL DEFAULT 0,
       FOREIGN KEY (user_id) REFERENCES users(user_id)
     );
+
+    CREATE INDEX IF NOT EXISTS idx_items_user ON items(user_id);
   `);
   return db;
 }
@@ -82,15 +85,17 @@ export function getDueItems(db: Db, userId: string): ItemRow[] {
 }
 
 export function updateItem(db: Db, itemId: string, result: ReviewResult): void {
-  db
+  const { changes } = db
     .prepare(
       `UPDATE items
        SET interval = ?, ease_factor = ?, repetitions = ?, next_due_date = ?
        WHERE item_id = ?`
     )
     .run(result.interval, result.ease_factor, result.repetitions, result.next_due_date, itemId);
+  if (changes === 0) throw new Error(`ITEM_NOT_FOUND: ${itemId}`);
 }
 
 export function deleteItem(db: Db, itemId: string): void {
-  db.prepare('DELETE FROM items WHERE item_id = ?').run(itemId);
+  const { changes } = db.prepare('DELETE FROM items WHERE item_id = ?').run(itemId);
+  if (changes === 0) throw new Error(`ITEM_NOT_FOUND: ${itemId}`);
 }
