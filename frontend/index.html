@@ -1,0 +1,77 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta name="theme-color" content="#0f0f0f" />
+  <title>RetainFlow</title>
+  <link rel="manifest" href="manifest.json" />
+  <link rel="stylesheet" href="style.css" />
+</head>
+<body>
+  <div id="app">
+
+    <!-- Login View -->
+    <div id="view-login" class="view active">
+      <h1 class="logo">RetainFlow</h1>
+      <p class="tagline">Spaced repetition. Zero clutter.</p>
+      <div class="card">
+        <input id="login-input" type="text" placeholder="Enter your User ID" autocomplete="off" />
+        <button id="login-btn" class="btn-primary">Start</button>
+      </div>
+    </div>
+
+    <!-- Dashboard View -->
+    <div id="view-dashboard" class="view">
+      <header class="topbar">
+        <span id="user-label" class="user-label"></span>
+        <button id="add-btn" class="btn-icon" title="Add Item">＋</button>
+      </header>
+      <div id="due-list" class="item-list"></div>
+      <div id="empty-state" class="empty-state hidden">
+        <p>No reviews due.</p>
+        <p class="sub">Check back later.</p>
+      </div>
+      <div id="limit-banner" class="limit-banner hidden">
+        <strong>Free tier full</strong> — upgrade to add more decks.
+        <button id="upgrade-btn" class="btn-upgrade">Upgrade</button>
+      </div>
+    </div>
+
+    <!-- Add Item View -->
+    <div id="view-add" class="view">
+      <button id="back-btn" class="btn-back">← Back</button>
+      <h2>Add Tracking ID</h2>
+      <p class="hint">e.g. <code>surah-67-ayat-1-10</code> or <code>mushaf-page-142</code></p>
+      <div class="card">
+        <input id="item-id-input" type="text" placeholder="Item ID" autocomplete="off" />
+        <button id="save-item-btn" class="btn-primary">Add</button>
+      </div>
+      <div id="add-error" class="error-msg hidden"></div>
+    </div>
+
+    <!-- Review View -->
+    <div id="view-review" class="view">
+      <button id="review-back-btn" class="btn-back">← Dashboard</button>
+      <div class="review-card">
+        <div class="item-id-display" id="review-item-id"></div>
+        <a id="review-link" class="review-link" target="_blank" rel="noopener">Open on Quran.com →</a>
+      </div>
+      <div class="quality-btns">
+        <button class="q-btn q-forgot" data-quality="forgot">Forgot</button>
+        <button class="q-btn q-hard"   data-quality="hard">Hard</button>
+        <button class="q-btn q-good"   data-quality="good">Good</button>
+        <button class="q-btn q-easy"   data-quality="easy">Easy</button>
+      </div>
+    </div>
+
+  </div>
+
+  <script src="app.js"></script>
+  <script>
+    if ('serviceWorker' in navigator) {
+      navigator.serviceWorker.register('/sw.js');
+    }
+  </script>
+</body>
+</html>

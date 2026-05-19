@@ -1,0 +1,83 @@
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+:root {
+  --bg: #0f0f0f;
+  --surface: #1a1a1a;
+  --border: #2e2e2e;
+  --text: #f0f0f0;
+  --sub: #888;
+  --accent: #4ade80;
+  --danger: #f87171;
+  --warn: #facc15;
+  --radius: 12px;
+}
+
+html, body { height: 100%; background: var(--bg); color: var(--text); font-family: system-ui, sans-serif; }
+
+#app { max-width: 480px; margin: 0 auto; padding: 1.5rem 1rem; min-height: 100%; }
+
+.view { display: none; }
+.view.active { display: block; }
+
+/* Login */
+.logo { font-size: 2rem; font-weight: 700; letter-spacing: -1px; color: var(--accent); margin-bottom: .25rem; }
+.tagline { color: var(--sub); margin-bottom: 2rem; font-size: .95rem; }
+
+.card { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); padding: 1.25rem; display: flex; flex-direction: column; gap: .75rem; }
+
+input[type=text] {
+  background: var(--bg);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  color: var(--text);
+  font-size: 1rem;
+  padding: .75rem 1rem;
+  outline: none;
+  width: 100%;
+}
+input[type=text]:focus { border-color: var(--accent); }
+
+.btn-primary { background: var(--accent); color: #000; border: none; border-radius: 8px; font-weight: 700; font-size: 1rem; padding: .75rem; cursor: pointer; transition: opacity .15s; }
+.btn-primary:hover { opacity: .85; }
+
+/* Topbar */
+.topbar { display: flex; justify-content: space-between; align-items: center; margin-bottom: 1.25rem; }
+.user-label { font-size: .85rem; color: var(--sub); }
+.btn-icon { background: var(--surface); border: 1px solid var(--border); border-radius: 8px; color: var(--text); font-size: 1.4rem; width: 2.5rem; height: 2.5rem; cursor: pointer; display: flex; align-items: center; justify-content: center; }
+
+/* Item list */
+.item-list { display: flex; flex-direction: column; gap: .6rem; }
+.item-row { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); padding: 1rem 1.25rem; display: flex; justify-content: space-between; align-items: center; cursor: pointer; transition: border-color .15s; }
+.item-row:hover { border-color: var(--accent); }
+.item-row .item-id { font-size: .95rem; word-break: break-all; }
+.item-row .item-meta { font-size: .75rem; color: var(--sub); white-space: nowrap; margin-left: .75rem; }
+.item-row .delete-btn { background: none; border: none; color: var(--danger); cursor: pointer; font-size: 1.1rem; padding: 0 .25rem; }
+
+/* Empty / limit */
+.empty-state { text-align: center; padding: 3rem 0; color: var(--sub); }
+.empty-state .sub { font-size: .85rem; margin-top: .4rem; }
+.limit-banner { background: #1f1a00; border: 1px solid var(--warn); border-radius: var(--radius); padding: .85rem 1rem; font-size: .9rem; color: var(--warn); display: flex; justify-content: space-between; align-items: center; margin-top: 1rem; }
+.btn-upgrade { background: var(--warn); color: #000; border: none; border-radius: 6px; padding: .4rem .75rem; font-weight: 700; cursor: pointer; font-size: .85rem; }
+
+/* Add view */
+.btn-back { background: none; border: none; color: var(--sub); cursor: pointer; font-size: .95rem; margin-bottom: 1.25rem; padding: 0; }
+.btn-back:hover { color: var(--text); }
+h2 { font-size: 1.35rem; margin-bottom: .4rem; }
+.hint { color: var(--sub); font-size: .85rem; margin-bottom: 1.25rem; }
+.hint code { color: var(--accent); }
+.error-msg { color: var(--danger); font-size: .9rem; margin-top: .75rem; }
+
+/* Review view */
+.review-card { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); padding: 2rem 1.5rem; text-align: center; margin: 1.5rem 0; }
+.item-id-display { font-size: 1.3rem; font-weight: 600; word-break: break-all; margin-bottom: 1rem; }
+.review-link { color: var(--accent); font-size: .9rem; text-decoration: none; }
+.review-link:hover { text-decoration: underline; }
+.quality-btns { display: grid; grid-template-columns: 1fr 1fr; gap: .75rem; }
+.q-btn { border: none; border-radius: 10px; font-size: 1rem; font-weight: 600; padding: 1rem; cursor: pointer; transition: opacity .15s; }
+.q-btn:hover { opacity: .85; }
+.q-forgot { background: var(--danger); color: #fff; }
+.q-hard   { background: #f97316; color: #fff; }
+.q-good   { background: #3b82f6; color: #fff; }
+.q-easy   { background: var(--accent); color: #000; }
+
+.hidden { display: none !important; }
