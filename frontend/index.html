@@ -16,7 +16,7 @@
       <h1 class="logo">RetainFlow</h1>
       <p class="tagline">Spaced repetition. Zero clutter.</p>
       <div class="card">
-        <input id="login-input" type="text" placeholder="Enter your User ID" autocomplete="off" />
+        <input id="login-input" type="text" placeholder="Enter your User ID" autocomplete="off" aria-label="User ID" />
         <button id="login-btn" class="btn-primary">Start</button>
       </div>
     </div>
@@ -25,7 +25,7 @@
     <div id="view-dashboard" class="view">
       <header class="topbar">
         <span id="user-label" class="user-label"></span>
-        <button id="add-btn" class="btn-icon" title="Add Item">＋</button>
+        <button id="add-btn" class="btn-icon" title="Add Item" aria-label="Add Item">＋</button>
       </header>
       <div id="due-list" class="item-list"></div>
       <div id="empty-state" class="empty-state hidden">
@@ -44,10 +44,10 @@
       <h2>Add Tracking ID</h2>
       <p class="hint">e.g. <code>surah-67-ayat-1-10</code> or <code>mushaf-page-142</code></p>
       <div class="card">
-        <input id="item-id-input" type="text" placeholder="Item ID" autocomplete="off" />
+        <input id="item-id-input" type="text" placeholder="Item ID" autocomplete="off" aria-label="Item tracking ID" />
         <button id="save-item-btn" class="btn-primary">Add</button>
       </div>
-      <div id="add-error" class="error-msg hidden"></div>
+      <div id="add-error" class="error-msg hidden" role="alert"></div>
     </div>
 
     <!-- Review View -->
