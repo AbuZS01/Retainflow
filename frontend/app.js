@@ -16,12 +16,17 @@ function showView(id) {
 
 // ── API helpers ────────────────────────────────────────────────────────────
 async function apiFetch(method, path, body) {
-  const res = await fetch(`${API}${path}`, {
-    method,
-    headers: body ? { 'Content-Type': 'application/json' } : {},
-    body: body ? JSON.stringify(body) : undefined,
-  });
-  return { status: res.status, data: await res.json() };
+  try {
+    const res = await fetch(`${API}${path}`, {
+      method,
+      headers: body ? { 'Content-Type': 'application/json' } : {},
+      body: body ? JSON.stringify(body) : undefined,
+    });
+    const data = await res.json().catch(() => ({}));
+    return { status: res.status, data };
+  } catch {
+    return { status: 0, data: {} };
+  }
 }
 
 // ── Dashboard ──────────────────────────────────────────────────────────────
@@ -30,7 +35,11 @@ async function loadDashboard() {
   document.getElementById('user-label').textContent = `User: ${state.userId}`;
 
   const { data } = await apiFetch('GET', `/api/items/${state.userId}`);
-  state.dueItems = data;
+  state.dueItems = Array.isArray(data) ? data : [];
+
+  if (state.atLimit) {
+    document.getElementById('limit-banner').classList.remove('hidden');
+  }
 
   renderDueList();
 }
@@ -49,18 +58,35 @@ function renderDueList() {
   state.dueItems.forEach((item) => {
     const row = document.createElement('div');
     row.className = 'item-row';
-    row.innerHTML = `
-      <span class="item-id">${item.item_id}</span>
-      <div style="display:flex;align-items:center;gap:.5rem">
-        <span class="item-meta">×${item.repetitions} rep</span>
-        <button class="delete-btn" data-id="${item.item_id}" title="Remove" aria-label="Remove ${item.item_id}">✕</button>
-      </div>
-    `;
+
+    const idSpan = document.createElement('span');
+    idSpan.className = 'item-id';
+    idSpan.textContent = item.item_id;
+
+    const meta = document.createElement('span');
+    meta.className = 'item-meta';
+    meta.textContent = `×${item.repetitions} rep`;
+
+    const deleteBtn = document.createElement('button');
+    deleteBtn.className = 'delete-btn';
+    deleteBtn.title = 'Remove';
+    deleteBtn.setAttribute('aria-label', `Remove ${item.item_id}`);
+    deleteBtn.textContent = '✕';
+    deleteBtn.addEventListener('click', () => removeItem(item.item_id));
+
+    const rightGroup = document.createElement('div');
+    rightGroup.style.cssText = 'display:flex;align-items:center;gap:.5rem';
+    rightGroup.appendChild(meta);
+    rightGroup.appendChild(deleteBtn);
+
+    row.appendChild(idSpan);
+    row.appendChild(rightGroup);
+
     row.addEventListener('click', (e) => {
       if (e.target.closest('.delete-btn')) return;
       startReview(item);
     });
-    row.querySelector('.delete-btn').addEventListener('click', () => removeItem(item.item_id));
+
     list.appendChild(row);
   });
 }
@@ -97,8 +123,7 @@ document.getElementById('save-item-btn').addEventListener('click', async () => {
     errEl.textContent = data.message;
     errEl.classList.remove('hidden');
     state.atLimit = true;
-    document.getElementById('limit-banner').classList.remove('hidden');
-    await loadDashboard();
+    // Stay on add view so user can read the error — don't navigate
   } else {
     const errEl = document.getElementById('add-error');
     errEl.textContent = data.error ?? 'Unknown error';
