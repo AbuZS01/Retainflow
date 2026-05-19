@@ -1,0 +1,109 @@
+import { describe, it, expect, beforeEach, afterEach } from 'vitest';
+import {
+  initDb,
+  createUser,
+  getUser,
+  addItem,
+  getDueItems,
+  updateItem,
+  deleteItem,
+  type Db,
+} from '../src/database.js';
+
+let db: Db;
+
+beforeEach(() => {
+  db = initDb(':memory:');
+});
+
+afterEach(() => {
+  db.close();
+});
+
+describe('createUser / getUser', () => {
+  it('creates a free-tier user', () => {
+    createUser(db, 'user-1');
+    const user = getUser(db, 'user-1');
+    expect(user).not.toBeNull();
+    expect(user!.user_id).toBe('user-1');
+    expect(user!.is_premium).toBe(0);
+  });
+
+  it('returns null for unknown user', () => {
+    expect(getUser(db, 'nobody')).toBeNull();
+  });
+});
+
+describe('addItem — freemium tier limit', () => {
+  it('allows adding up to 3 items for free user', () => {
+    createUser(db, 'user-free');
+    addItem(db, 'user-free', 'item-1');
+    addItem(db, 'user-free', 'item-2');
+    addItem(db, 'user-free', 'item-3');
+    const items = getDueItems(db, 'user-free');
+    expect(items.length).toBe(3);
+  });
+
+  it('blocks 4th item for free user with LIMIT_REACHED error', () => {
+    createUser(db, 'user-free2');
+    addItem(db, 'user-free2', 'item-a');
+    addItem(db, 'user-free2', 'item-b');
+    addItem(db, 'user-free2', 'item-c');
+    expect(() => addItem(db, 'user-free2', 'item-d')).toThrow('LIMIT_REACHED');
+  });
+
+  it('allows more than 3 items for premium user', () => {
+    createUser(db, 'user-premium');
+    db.prepare("UPDATE users SET is_premium = 1 WHERE user_id = 'user-premium'").run();
+    addItem(db, 'user-premium', 'item-1');
+    addItem(db, 'user-premium', 'item-2');
+    addItem(db, 'user-premium', 'item-3');
+    addItem(db, 'user-premium', 'item-4');
+    const items = getDueItems(db, 'user-premium');
+    expect(items.length).toBe(4);
+  });
+});
+
+describe('getDueItems', () => {
+  it('only returns items with next_due_date <= now', () => {
+    createUser(db, 'user-due');
+    addItem(db, 'user-due', 'past-due');
+    // Manually set a far-future due date on a second item
+    addItem(db, 'user-due', 'future-item');
+    db.prepare(
+      "UPDATE items SET next_due_date = ? WHERE item_id = 'future-item'"
+    ).run(Date.now() + 10 * 86_400_000);
+
+    const due = getDueItems(db, 'user-due');
+    const ids = due.map((i) => i.item_id);
+    expect(ids).toContain('past-due');
+    expect(ids).not.toContain('future-item');
+  });
+});
+
+describe('updateItem', () => {
+  it('persists new SM-2 values', () => {
+    createUser(db, 'user-upd');
+    addItem(db, 'user-upd', 'card-1');
+    updateItem(db, 'card-1', {
+      interval: 15,
+      ease_factor: 2.6,
+      repetitions: 3,
+      next_due_date: Date.now() + 15 * 86_400_000,
+    });
+    const items = db.prepare("SELECT * FROM items WHERE item_id = 'card-1'").get() as any;
+    expect(items.interval).toBe(15);
+    expect(items.ease_factor).toBeCloseTo(2.6, 4);
+    expect(items.repetitions).toBe(3);
+  });
+});
+
+describe('deleteItem', () => {
+  it('removes the item row', () => {
+    createUser(db, 'user-del');
+    addItem(db, 'user-del', 'to-delete');
+    deleteItem(db, 'to-delete');
+    const row = db.prepare("SELECT * FROM items WHERE item_id = 'to-delete'").get();
+    expect(row).toBeUndefined();
+  });
+});
