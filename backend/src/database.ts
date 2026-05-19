@@ -84,6 +84,12 @@ export function getDueItems(db: Db, userId: string): ItemRow[] {
     .all(userId, Date.now()) as ItemRow[];
 }
 
+export function getItem(db: Db, itemId: string): ItemRow | null {
+  return (
+    (db.prepare('SELECT * FROM items WHERE item_id = ?').get(itemId) as ItemRow) ?? null
+  );
+}
+
 export function updateItem(db: Db, itemId: string, result: ReviewResult): void {
   const { changes } = db
     .prepare(

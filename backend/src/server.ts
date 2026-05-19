@@ -1,14 +1,15 @@
 import Fastify from 'fastify';
+import type { FastifyInstance } from 'fastify';
 import fastifyStatic from '@fastify/static';
 import fastifyCors from '@fastify/cors';
 import { fileURLToPath } from 'url';
 import path from 'path';
-import { initDb, createUser, addItem, getDueItems, updateItem, deleteItem } from './database.js';
+import { initDb, createUser, addItem, getDueItems, getItem, updateItem, deleteItem } from './database.js';
 import { applyReview, type ReviewQuality } from './engine.js';
 
 const VALID_QUALITIES = new Set<string>(['forgot', 'hard', 'good', 'easy']);
 
-export function buildApp(dbPath: string) {
+export function buildApp(dbPath: string): FastifyInstance {
   const db = initDb(dbPath);
   const app = Fastify({ logger: false });
 
@@ -37,6 +38,9 @@ export function buildApp(dbPath: string) {
           message: 'Free tier is limited to 3 parallel tracking decks.',
         });
       }
+      if (err.message.startsWith('USER_NOT_FOUND')) {
+        return reply.status(404).send({ error: 'USER_NOT_FOUND', message: 'User not found' });
+      }
       throw err;
     }
   });
@@ -55,7 +59,7 @@ export function buildApp(dbPath: string) {
     if (!quality || !VALID_QUALITIES.has(quality))
       return reply.status(400).send({ error: 'quality must be one of: forgot, hard, good, easy' });
 
-    const row = db.prepare('SELECT * FROM items WHERE item_id = ?').get(itemId) as any;
+    const row = getItem(db, itemId);
     if (!row) return reply.status(404).send({ error: 'item not found' });
 
     const result = applyReview(
@@ -69,8 +73,15 @@ export function buildApp(dbPath: string) {
   // DELETE /api/items/:itemId
   app.delete('/api/items/:itemId', async (req, reply) => {
     const { itemId } = req.params as { itemId: string };
-    deleteItem(db, itemId);
-    return reply.send({ ok: true });
+    try {
+      deleteItem(db, itemId);
+      return reply.send({ ok: true });
+    } catch (err: any) {
+      if (err.message.startsWith('ITEM_NOT_FOUND')) {
+        return reply.status(404).send({ error: 'ITEM_NOT_FOUND', message: 'Item not found' });
+      }
+      throw err;
+    }
   });
 
   // Serve frontend in production

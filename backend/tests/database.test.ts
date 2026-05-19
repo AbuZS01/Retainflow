@@ -3,6 +3,7 @@ import {
   initDb,
   createUser,
   getUser,
+  getItem,
   addItem,
   getDueItems,
   updateItem,
@@ -123,5 +124,20 @@ describe('deleteItem', () => {
 describe('addItem — error cases', () => {
   it('throws USER_NOT_FOUND when user does not exist', () => {
     expect(() => addItem(db, 'nobody', 'item-x')).toThrow('USER_NOT_FOUND');
+  });
+});
+
+describe('getItem', () => {
+  it('returns item by id', () => {
+    createUser(db, 'user-getitem');
+    addItem(db, 'user-getitem', 'my-item');
+    const item = getItem(db, 'my-item');
+    expect(item).not.toBeNull();
+    expect(item!.item_id).toBe('my-item');
+    expect(item!.user_id).toBe('user-getitem');
+  });
+
+  it('returns null for unknown item', () => {
+    expect(getItem(db, 'ghost')).toBeNull();
   });
 });
