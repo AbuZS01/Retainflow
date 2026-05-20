@@ -12,6 +12,19 @@
   --radius: 12px;
 }
 
+[data-theme="dark"] {
+  --bg: #111009;
+  --surface: #1d1b0f;
+  --border: #3a3520;
+  --text: #f0e6cc;
+  --sub: #887b5a;
+  --accent: #c9a227;
+  --danger: #d04444;
+  --warn: #c9a227;
+}
+[data-theme="dark"] .limit-banner { background: #1f1a00; }
+[data-theme="dark"] .q-easy { color: #000; }
+
 html, body { height: 100%; background: var(--bg); color: var(--text); font-family: system-ui, sans-serif; }
 
 #app { max-width: 480px; margin: 0 auto; padding: 1.5rem 1rem; min-height: 100%; }
@@ -61,6 +74,7 @@ textarea:focus { border-color: var(--accent); }
 
 /* Topbar */
 .topbar { display: flex; justify-content: space-between; align-items: center; margin-bottom: 1.25rem; }
+.topbar-actions { display: flex; gap: .5rem; }
 .user-label { font-size: .85rem; color: var(--sub); }
 .btn-icon { background: var(--surface); border: 1px solid var(--border); border-radius: 8px; color: var(--text); font-size: 1.4rem; width: 2.5rem; height: 2.5rem; cursor: pointer; display: flex; align-items: center; justify-content: center; }
 
@@ -87,8 +101,14 @@ h2 { font-size: 1.35rem; margin-bottom: .4rem; }
 .error-msg { color: var(--danger); font-size: .9rem; margin-top: .75rem; }
 
 /* Review view */
-.review-card { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); padding: 2rem 1.5rem; text-align: center; margin: 1.5rem 0; }
-.item-id-display { font-size: 1.3rem; font-weight: 600; word-break: break-all; margin-bottom: 1rem; }
+.review-topbar { display: flex; align-items: center; gap: 1rem; margin-bottom: 1rem; }
+.session-progress { flex: 1; display: flex; flex-direction: column; gap: .3rem; }
+.progress-text { font-size: .75rem; color: var(--sub); text-align: right; }
+.progress-track { height: 4px; background: var(--border); border-radius: 2px; overflow: hidden; }
+.progress-fill { height: 100%; background: var(--accent); border-radius: 2px; transition: width .3s ease; width: 0%; }
+
+.review-card { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); padding: 2rem 1.5rem; text-align: center; margin: 1rem 0; touch-action: pan-y; user-select: none; will-change: transform; }
+.item-id-display { font-size: 1.1rem; font-weight: 600; word-break: break-all; margin-bottom: 1rem; color: var(--sub); }
 .review-link { color: var(--accent); font-size: .9rem; text-decoration: none; }
 .review-link:hover { text-decoration: underline; }
 .review-content {
@@ -101,6 +121,7 @@ h2 { font-size: 1.35rem; margin-bottom: .4rem; }
   direction: rtl;
 }
 .review-content:empty { display: none; }
+.swipe-hint { text-align: center; font-size: .75rem; color: var(--sub); margin-bottom: .75rem; letter-spacing: .02em; }
 .quality-btns { display: grid; grid-template-columns: 1fr 1fr; gap: .75rem; }
 .q-btn { border: none; border-radius: 10px; font-size: 1rem; font-weight: 600; padding: 1rem; cursor: pointer; transition: opacity .15s; }
 .q-btn:hover { opacity: .85; }
@@ -108,6 +129,17 @@ h2 { font-size: 1.35rem; margin-bottom: .4rem; }
 .q-hard   { background: #b06000; color: #fff; }
 .q-good   { background: #2a6090; color: #fff; }
 .q-easy   { background: var(--accent); color: #000; }
+
+/* Session complete */
+.complete-wrap { display: flex; flex-direction: column; align-items: center; text-align: center; padding: 2rem 0; }
+.complete-icon { font-size: 3.5rem; color: var(--accent); background: var(--surface); border: 2px solid var(--accent); border-radius: 50%; width: 5rem; height: 5rem; display: flex; align-items: center; justify-content: center; margin-bottom: 1.25rem; }
+.complete-title { font-size: 1.5rem; font-weight: 700; margin-bottom: .4rem; }
+.complete-sub { color: var(--sub); font-size: .9rem; margin-bottom: 1.75rem; }
+.complete-stats { display: flex; gap: 1.5rem; margin-bottom: 2rem; }
+.stat-box { display: flex; flex-direction: column; align-items: center; background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); padding: 1rem 1.5rem; }
+.stat-num { font-size: 2rem; font-weight: 700; color: var(--accent); line-height: 1; }
+.stat-label { font-size: .8rem; color: var(--sub); margin-top: .3rem; }
+.complete-home { display: block; text-align: center; margin-top: .75rem; }
 
 .hidden { display: none !important; }
 

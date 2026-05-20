@@ -15,7 +15,10 @@
     <div id="view-dashboard" class="view active">
       <header class="topbar">
         <h1 class="logo-small">RetainFlow</h1>
-        <button id="add-btn" class="btn-icon" title="Add Item" aria-label="Add Item">＋</button>
+        <div class="topbar-actions">
+          <button id="theme-btn" class="btn-icon" title="Toggle dark mode" aria-label="Toggle dark mode">🌙</button>
+          <button id="add-btn" class="btn-icon" title="Add Item" aria-label="Add Item">＋</button>
+        </div>
       </header>
       <div id="due-list" class="item-list"></div>
       <div id="empty-state" class="empty-state hidden">
@@ -61,17 +64,45 @@
 
     <!-- Review View -->
     <div id="view-review" class="view">
-      <button id="review-back-btn" class="btn-back">← Dashboard</button>
-      <div class="review-card">
+      <div class="review-topbar">
+        <button id="review-back-btn" class="btn-back">← Dashboard</button>
+        <div class="session-progress">
+          <span id="review-progress-text" class="progress-text"></span>
+          <div class="progress-track"><div id="progress-fill" class="progress-fill"></div></div>
+        </div>
+      </div>
+      <div class="review-card" id="review-card">
         <div class="item-id-display" id="review-item-id"></div>
         <div class="review-content" id="review-content"></div>
         <a id="review-link" class="review-link" target="_blank" rel="noopener noreferrer">Open on Quran.com →</a>
       </div>
+      <p class="swipe-hint">← swipe forgot &nbsp;|&nbsp; swipe easy →</p>
       <div class="quality-btns">
         <button class="q-btn q-forgot" data-quality="forgot">Forgot</button>
         <button class="q-btn q-hard"   data-quality="hard">Hard</button>
         <button class="q-btn q-good"   data-quality="good">Good</button>
         <button class="q-btn q-easy"   data-quality="easy">Easy</button>
+      </div>
+    </div>
+
+    <!-- Session Complete View -->
+    <div id="view-complete" class="view">
+      <div class="complete-wrap">
+        <div class="complete-icon">✓</div>
+        <h2 class="complete-title">All done for today!</h2>
+        <p class="complete-sub">Come back tomorrow to keep your streak going.</p>
+        <div class="complete-stats">
+          <div class="stat-box">
+            <span id="complete-count" class="stat-num">0</span>
+            <span class="stat-label">reviewed</span>
+          </div>
+          <div class="stat-box">
+            <span id="complete-streak" class="stat-num">0</span>
+            <span class="stat-label">day streak 🔥</span>
+          </div>
+        </div>
+        <button id="complete-add-btn" class="btn-primary">Add more ayahs</button>
+        <button id="complete-home-btn" class="btn-back complete-home">Back to dashboard</button>
       </div>
     </div>
 
