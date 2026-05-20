@@ -4,7 +4,7 @@ import fastifyStatic from '@fastify/static';
 import fastifyCors from '@fastify/cors';
 import { fileURLToPath } from 'url';
 import path from 'path';
-import { initDb, createUser, addItem, getDueItems, getItem, updateItem, deleteItem } from './database.js';
+import { initDb, createUser, addItem, getDueItems, getItem, updateItem, deleteItem, searchAyahs, getAyahRange } from './database.js';
 import { applyReview, type ReviewQuality } from './engine.js';
 
 const VALID_QUALITIES = new Set<string>(['forgot', 'hard', 'good', 'easy']);
@@ -88,6 +88,27 @@ export function buildApp(dbPath: string): FastifyInstance {
       }
       throw err;
     }
+  });
+
+  // GET /api/quran/search?q=...
+  app.get('/api/quran/search', async (req, reply) => {
+    const { q } = req.query as { q?: string };
+    if (!q || q.trim().length < 2)
+      return reply.status(400).send({ error: 'query must be at least 2 characters' });
+    const results = searchAyahs(db, q.trim());
+    return reply.send(results);
+  });
+
+  // GET /api/quran/:surah/:from/:to
+  app.get('/api/quran/:surah/:from/:to', async (req, reply) => {
+    const { surah, from, to } = req.params as { surah: string; from: string; to: string };
+    const s = parseInt(surah, 10);
+    const f = parseInt(from, 10);
+    const t = parseInt(to, 10);
+    if (isNaN(s) || isNaN(f) || isNaN(t) || s < 1 || s > 114 || f < 1 || t < f)
+      return reply.status(400).send({ error: 'invalid range' });
+    const ayahs = getAyahRange(db, s, f, t);
+    return reply.send(ayahs);
   });
 
   // Serve frontend in production

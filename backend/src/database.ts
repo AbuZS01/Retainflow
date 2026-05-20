@@ -107,3 +107,39 @@ export function deleteItem(db: Db, itemId: string): void {
   const { changes } = db.prepare('DELETE FROM items WHERE item_id = ?').run(itemId);
   if (changes === 0) throw new Error(`ITEM_NOT_FOUND: ${itemId}`);
 }
+
+export interface AyahRow {
+  id: number;
+  surah: number;
+  ayah: number;
+  arabic: string;
+  english: string;
+  surah_name: string;
+}
+
+export function searchAyahs(db: Db, query: string, limit = 20): AyahRow[] {
+  // FTS search first, fall back to LIKE if FTS table empty
+  try {
+    return db.prepare(
+      `SELECT q.* FROM quran_ayahs q
+       JOIN quran_fts f ON f.rowid = q.id
+       WHERE quran_fts MATCH ?
+       ORDER BY rank
+       LIMIT ?`
+    ).all(query + '*', limit) as AyahRow[];
+  } catch {
+    return db.prepare(
+      `SELECT * FROM quran_ayahs
+       WHERE arabic LIKE ? OR english LIKE ? OR surah_name LIKE ?
+       LIMIT ?`
+    ).all(`%${query}%`, `%${query}%`, `%${query}%`, limit) as AyahRow[];
+  }
+}
+
+export function getAyahRange(db: Db, surah: number, fromAyah: number, toAyah: number): AyahRow[] {
+  return db.prepare(
+    `SELECT * FROM quran_ayahs
+     WHERE surah = ? AND ayah >= ? AND ayah <= ?
+     ORDER BY ayah`
+  ).all(surah, fromAyah, toAyah) as AyahRow[];
+}

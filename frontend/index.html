@@ -41,14 +41,32 @@
     <!-- Add Item View -->
     <div id="view-add" class="view">
       <button id="back-btn" class="btn-back">← Back</button>
-      <h2>Add Tracking ID</h2>
-      <p class="hint">e.g. <code>surah-67-ayat-1-10</code> or <code>mushaf-page-142</code></p>
-      <div class="card">
-        <input id="item-id-input" type="text" placeholder="Item ID (e.g. surah-67-ayat-1-10)" autocomplete="off" aria-label="Item tracking ID" />
-        <textarea id="item-content-input" placeholder="Text to memorize (paste the verse, passage, or note here)" aria-label="Content to memorize" rows="5"></textarea>
-        <button id="save-item-btn" class="btn-primary">Add</button>
+      <h2>Add to Review Queue</h2>
+      <p class="hint">Search by surah name, English meaning, or any Arabic/English text</p>
+      <div class="search-bar">
+        <input id="search-input" type="text" placeholder="e.g. Al-Mulk, mercy, bismillah..." autocomplete="off" aria-label="Search Quran" />
       </div>
-      <div id="add-error" class="error-msg hidden" role="alert"></div>
+      <div id="search-results" class="search-results"></div>
+
+      <!-- Range selector — shown after user picks an ayah -->
+      <div id="range-selector" class="range-selector hidden">
+        <div class="range-header">
+          <span id="range-surah-label"></span>
+        </div>
+        <div class="range-inputs">
+          <div class="range-field">
+            <label for="range-from">From ayah</label>
+            <input id="range-from" type="number" min="1" aria-label="From ayah" />
+          </div>
+          <div class="range-field">
+            <label for="range-to">To ayah</label>
+            <input id="range-to" type="number" min="1" aria-label="To ayah" />
+          </div>
+        </div>
+        <div id="range-preview" class="range-preview"></div>
+        <button id="save-item-btn" class="btn-primary">Add to Review Queue</button>
+        <div id="add-error" class="error-msg hidden" role="alert"></div>
+      </div>
     </div>
 
     <!-- Review View -->

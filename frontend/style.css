@@ -111,3 +111,22 @@ h2 { font-size: 1.35rem; margin-bottom: .4rem; }
 .q-easy   { background: var(--accent); color: #000; }
 
 .hidden { display: none !important; }
+
+/* Search */
+.search-bar { margin-bottom: 1rem; }
+.search-results { display: flex; flex-direction: column; gap: .5rem; max-height: 60vh; overflow-y: auto; }
+.search-result-item { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); padding: .85rem 1rem; cursor: pointer; transition: border-color .15s; }
+.search-result-item:hover { border-color: var(--accent); }
+.search-result-item .result-ref { font-size: .75rem; color: var(--accent); margin-bottom: .3rem; }
+.search-result-item .result-arabic { font-size: 1.1rem; direction: rtl; text-align: right; line-height: 1.8; margin-bottom: .3rem; }
+.search-result-item .result-english { font-size: .85rem; color: var(--sub); }
+
+/* Range selector */
+.range-selector { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); padding: 1.25rem; margin-top: 1rem; }
+.range-header { font-weight: 600; margin-bottom: 1rem; color: var(--accent); }
+.range-inputs { display: grid; grid-template-columns: 1fr 1fr; gap: .75rem; margin-bottom: 1rem; }
+.range-field label { display: block; font-size: .8rem; color: var(--sub); margin-bottom: .3rem; }
+.range-field input[type=number] { background: var(--bg); border: 1px solid var(--border); border-radius: 8px; color: var(--text); font-size: 1rem; padding: .6rem .75rem; width: 100%; outline: none; }
+.range-field input[type=number]:focus { border-color: var(--accent); }
+.range-preview { background: var(--bg); border: 1px solid var(--border); border-radius: 8px; padding: 1rem; margin-bottom: 1rem; max-height: 200px; overflow-y: auto; direction: rtl; text-align: right; font-size: 1rem; line-height: 1.9; min-height: 60px; color: var(--sub); }
+.range-preview.has-content { color: var(--text); }

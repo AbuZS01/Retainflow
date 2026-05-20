@@ -6,13 +6,15 @@
     "dev": "tsx watch src/server.ts",
     "build": "tsc",
     "start": "node dist/server.js",
-    "test": "vitest run"
+    "test": "vitest run",
+    "seed": "tsx scripts/seed-quran.ts"
   },
   "dependencies": {
     "@fastify/cors": "^11.2.0",
     "@fastify/static": "^9.1.3",
     "better-sqlite3": "^12.10.0",
-    "fastify": "^5.8.5"
+    "fastify": "^5.8.5",
+    "quran-json": "^3.1.2"
   },
   "devDependencies": {
     "@types/better-sqlite3": "^7.6.11",
