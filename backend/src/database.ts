@@ -42,6 +42,13 @@ export function initDb(path: string): Db {
 
     CREATE INDEX IF NOT EXISTS idx_items_user ON items(user_id);
   `);
+
+  // Migrations — safe to run on every startup
+  const itemCols = (db.prepare('PRAGMA table_info(items)').all() as { name: string }[]).map(c => c.name);
+  if (!itemCols.includes('content')) {
+    db.exec("ALTER TABLE items ADD COLUMN content TEXT NOT NULL DEFAULT ''");
+  }
+
   return db;
 }
 
