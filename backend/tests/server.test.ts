@@ -45,6 +45,16 @@ describe('POST /api/items', () => {
     expect(res.statusCode).toBe(201);
   });
 
+  it('stores content when provided', async () => {
+    await app.inject({ method: 'POST', url: '/api/users', payload: { user_id: 'content-user' } });
+    const res = await app.inject({
+      method: 'POST',
+      url: '/api/items',
+      payload: { user_id: 'content-user', item_id: 'verse-with-content', content: 'Hello world' },
+    });
+    expect(res.statusCode).toBe(201);
+  });
+
   it('returns 403 with LIMIT_REACHED after 3 free items', async () => {
     await app.inject({
       method: 'POST',

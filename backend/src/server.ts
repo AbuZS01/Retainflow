@@ -26,13 +26,13 @@ export function buildApp(dbPath: string): FastifyInstance {
 
   // POST /api/items
   app.post('/api/items', async (req, reply) => {
-    const { user_id, item_id } = req.body as { user_id?: string; item_id?: string };
+    const { user_id, item_id, content = '' } = req.body as { user_id?: string; item_id?: string; content?: string };
     if (!user_id || !item_id)
       return reply.status(400).send({ error: 'user_id and item_id required' });
     if (user_id.length > 200 || item_id.length > 200)
       return reply.status(400).send({ error: 'user_id and item_id must be 200 chars or less' });
     try {
-      addItem(db, user_id, item_id);
+      addItem(db, user_id, item_id, content);
       return reply.status(201).send({ ok: true, item_id });
     } catch (err: any) {
       if (err.message === 'LIMIT_REACHED') {

@@ -101,6 +101,7 @@ async function removeItem(itemId) {
 // ── Add item ───────────────────────────────────────────────────────────────
 document.getElementById('add-btn').addEventListener('click', () => {
   document.getElementById('item-id-input').value = '';
+  document.getElementById('item-content-input').value = '';
   document.getElementById('add-error').classList.add('hidden');
   showView('view-add');
 });
@@ -111,9 +112,11 @@ document.getElementById('save-item-btn').addEventListener('click', async () => {
   const itemId = document.getElementById('item-id-input').value.trim();
   if (!itemId) return;
 
+  const content = document.getElementById('item-content-input').value.trim();
   const { status, data } = await apiFetch('POST', '/api/items', {
     user_id: state.userId,
     item_id: itemId,
+    content,
   });
 
   if (status === 201) {
@@ -143,6 +146,7 @@ function buildQuranLink(itemId) {
 function startReview(item) {
   state.reviewItem = item;
   document.getElementById('review-item-id').textContent = item.item_id;
+  document.getElementById('review-content').textContent = item.content ?? '';
   document.getElementById('review-link').href = buildQuranLink(item.item_id);
   showView('view-review');
 }

@@ -44,7 +44,8 @@
       <h2>Add Tracking ID</h2>
       <p class="hint">e.g. <code>surah-67-ayat-1-10</code> or <code>mushaf-page-142</code></p>
       <div class="card">
-        <input id="item-id-input" type="text" placeholder="Item ID" autocomplete="off" aria-label="Item tracking ID" />
+        <input id="item-id-input" type="text" placeholder="Item ID (e.g. surah-67-ayat-1-10)" autocomplete="off" aria-label="Item tracking ID" />
+        <textarea id="item-content-input" placeholder="Text to memorize (paste the verse, passage, or note here)" aria-label="Content to memorize" rows="5"></textarea>
         <button id="save-item-btn" class="btn-primary">Add</button>
       </div>
       <div id="add-error" class="error-msg hidden" role="alert"></div>
@@ -55,7 +56,8 @@
       <button id="review-back-btn" class="btn-back">← Dashboard</button>
       <div class="review-card">
         <div class="item-id-display" id="review-item-id"></div>
-        <a id="review-link" class="review-link" target="_blank" rel="noopener">Open on Quran.com →</a>
+        <div class="review-content" id="review-content"></div>
+        <a id="review-link" class="review-link" target="_blank" rel="noopener noreferrer">Open on Quran.com →</a>
       </div>
       <div class="quality-btns">
         <button class="q-btn q-forgot" data-quality="forgot">Forgot</button>

@@ -37,6 +37,21 @@ input[type=text] {
 }
 input[type=text]:focus { border-color: var(--accent); }
 
+textarea {
+  background: var(--bg);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  color: var(--text);
+  font-size: 1rem;
+  padding: .75rem 1rem;
+  outline: none;
+  width: 100%;
+  resize: vertical;
+  font-family: inherit;
+  line-height: 1.5;
+}
+textarea:focus { border-color: var(--accent); }
+
 .btn-primary { background: var(--accent); color: #000; border: none; border-radius: 8px; font-weight: 700; font-size: 1rem; padding: .75rem; cursor: pointer; transition: opacity .15s; }
 .btn-primary:hover { opacity: .85; }
 .btn-primary:focus-visible,
@@ -77,6 +92,16 @@ h2 { font-size: 1.35rem; margin-bottom: .4rem; }
 .item-id-display { font-size: 1.3rem; font-weight: 600; word-break: break-all; margin-bottom: 1rem; }
 .review-link { color: var(--accent); font-size: .9rem; text-decoration: none; }
 .review-link:hover { text-decoration: underline; }
+.review-content {
+  font-size: 1.1rem;
+  line-height: 1.8;
+  color: var(--text);
+  margin: 1rem 0;
+  white-space: pre-wrap;
+  text-align: right;
+  direction: rtl;
+}
+.review-content:empty { display: none; }
 .quality-btns { display: grid; grid-template-columns: 1fr 1fr; gap: .75rem; }
 .q-btn { border: none; border-radius: 10px; font-size: 1rem; font-weight: 600; padding: 1rem; cursor: pointer; transition: opacity .15s; }
 .q-btn:hover { opacity: .85; }

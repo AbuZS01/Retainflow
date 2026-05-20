@@ -127,6 +127,23 @@ describe('addItem — error cases', () => {
   });
 });
 
+describe('addItem — content', () => {
+  it('stores and retrieves content', () => {
+    createUser(db, 'user-content');
+    addItem(db, 'user-content', 'verse-1', 'بِسْمِ اللَّهِ الرَّحْمَٰنِ الرَّحِيمِ');
+    const item = getItem(db, 'verse-1');
+    expect(item).not.toBeNull();
+    expect(item!.content).toBe('بِسْمِ اللَّهِ الرَّحْمَٰنِ الرَّحِيمِ');
+  });
+
+  it('defaults to empty string when content not provided', () => {
+    createUser(db, 'user-nocontent');
+    addItem(db, 'user-nocontent', 'item-no-content');
+    const item = getItem(db, 'item-no-content');
+    expect(item!.content).toBe('');
+  });
+});
+
 describe('getItem', () => {
   it('returns item by id', () => {
     createUser(db, 'user-getitem');

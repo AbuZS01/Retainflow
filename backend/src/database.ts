@@ -12,6 +12,7 @@ export interface UserRow {
 export interface ItemRow {
   item_id: string;
   user_id: string;
+  content: string;
   interval: number;
   ease_factor: number;
   repetitions: number;
@@ -31,6 +32,7 @@ export function initDb(path: string): Db {
     CREATE TABLE IF NOT EXISTS items (
       item_id       TEXT PRIMARY KEY,
       user_id       TEXT NOT NULL,
+      content       TEXT NOT NULL DEFAULT '',
       interval      INTEGER NOT NULL DEFAULT 1,
       ease_factor   REAL NOT NULL DEFAULT 2.5,
       repetitions   INTEGER NOT NULL DEFAULT 0,
@@ -53,7 +55,7 @@ export function getUser(db: Db, userId: string): UserRow | null {
   );
 }
 
-export function addItem(db: Db, userId: string, itemId: string): void {
+export function addItem(db: Db, userId: string, itemId: string, content: string = ''): void {
   const user = getUser(db, userId);
   if (!user) throw new Error(`USER_NOT_FOUND: ${userId}`);
 
@@ -70,10 +72,10 @@ export function addItem(db: Db, userId: string, itemId: string): void {
 
   db
     .prepare(
-      `INSERT INTO items (item_id, user_id, next_due_date)
-       VALUES (?, ?, ?)`
+      `INSERT INTO items (item_id, user_id, content, next_due_date)
+       VALUES (?, ?, ?, ?)`
     )
-    .run(itemId, userId, Date.now());
+    .run(itemId, userId, content, Date.now());
 }
 
 export function getDueItems(db: Db, userId: string): ItemRow[] {
