@@ -4,7 +4,7 @@ import path from 'path';
 import { fileURLToPath } from 'url';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
-const DB_PATH = process.env.DB_PATH ?? path.join(__dirname, '../../retainflow.db');
+const DB_PATH = process.env.DB_PATH ?? path.join(__dirname, '../retainflow.db');
 
 // Use createRequire to import JSON in ESM context
 const require = createRequire(import.meta.url);
