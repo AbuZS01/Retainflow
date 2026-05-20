@@ -25,6 +25,12 @@ interface Chapter {
   verses: Verse[];
 }
 
+interface MuhsinVerse {
+  chapter: number;
+  verse: number;
+  text: string;
+}
+
 async function seed() {
   const db = new Database(DB_PATH);
   db.pragma('journal_mode = WAL');
@@ -46,15 +52,27 @@ async function seed() {
     USING fts5(arabic, english, surah_name, content='quran_ayahs', content_rowid='id');
   `);
 
-  const existing = (db.prepare('SELECT COUNT(*) as cnt FROM quran_ayahs').get() as any).cnt;
-  if (existing > 0) {
-    console.log(`Already seeded (${existing} ayahs). Skipping.`);
-    db.close();
-    return;
-  }
+  // Clear existing quran data to allow re-seeding with new translation
+  db.exec('DELETE FROM quran_fts; DELETE FROM quran_ayahs;');
+  // Reset the already-seeded check
+  console.log('Cleared existing Quran data. Re-seeding with Muhsin Khan/Hilali translation...');
 
-  console.log('Loading Quran data from quran-json package...');
-  const quranEn: Chapter[] = require('quran-json/dist/quran_en.json');
+  console.log('Fetching Muhsin Khan/Hilali translation from CDN...');
+  const cdnResponse = await fetch('https://cdn.jsdelivr.net/gh/fawazahmed0/quran-api@1/editions/eng-muhammadtaqiudd.json');
+  if (!cdnResponse.ok) {
+    throw new Error(`Failed to fetch Muhsin Khan translation: ${cdnResponse.status} ${cdnResponse.statusText}`);
+  }
+  const muhsinData = await cdnResponse.json() as { quran: MuhsinVerse[] };
+
+  // Build surah:ayah -> english text map
+  const engMap = new Map<string, string>();
+  for (const v of muhsinData.quran) {
+    engMap.set(`${v.chapter}:${v.verse}`, v.text);
+  }
+  console.log(`Loaded ${engMap.size} verses from Muhsin Khan/Hilali translation.`);
+
+  console.log('Loading Arabic Quran data from quran-json package...');
+  const quranAr: Chapter[] = require('quran-json/dist/quran_en.json');
 
   const insertAyah = db.prepare(
     'INSERT OR IGNORE INTO quran_ayahs (surah, ayah, arabic, english, surah_name) VALUES (?, ?, ?, ?, ?)'
@@ -65,17 +83,18 @@ async function seed() {
 
   console.log('Seeding ayahs...');
   const insertAll = db.transaction(() => {
-    for (const chapter of quranEn) {
+    for (const chapter of quranAr) {
       for (const verse of chapter.verses) {
+        const english = engMap.get(`${chapter.id}:${verse.id}`) ?? verse.translation ?? '';
         const result = insertAyah.run(
           chapter.id,
           verse.id,
           verse.text,
-          verse.translation ?? '',
+          english,
           chapter.transliteration
         );
         if (result.lastInsertRowid) {
-          insertFts.run(result.lastInsertRowid, verse.text, verse.translation ?? '', chapter.transliteration);
+          insertFts.run(result.lastInsertRowid, verse.text, english, chapter.transliteration);
         }
       }
     }
