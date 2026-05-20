@@ -1,14 +1,14 @@
 *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 
 :root {
-  --bg: #111009;
-  --surface: #1d1b0f;
-  --border: #3a3520;
-  --text: #f0e6cc;
-  --sub: #887b5a;
-  --accent: #c9a227;
-  --danger: #d04444;
-  --warn: #c9a227;
+  --bg: #fdf8e1;
+  --surface: #fff9e6;
+  --border: #e8d98a;
+  --text: #2a2000;
+  --sub: #7a6a30;
+  --accent: #a07c00;
+  --danger: #c0392b;
+  --warn: #a07c00;
   --radius: 12px;
 }
 
@@ -76,7 +76,7 @@ textarea:focus { border-color: var(--accent); }
 /* Empty / limit */
 .empty-state { text-align: center; padding: 3rem 0; color: var(--sub); }
 .empty-state .sub { font-size: .85rem; margin-top: .4rem; }
-.limit-banner { background: #1f1a00; border: 1px solid var(--warn); border-radius: var(--radius); padding: .85rem 1rem; font-size: .9rem; color: var(--warn); display: flex; justify-content: space-between; align-items: center; margin-top: 1rem; }
+.limit-banner { background: #fef3c7; border: 1px solid var(--warn); border-radius: var(--radius); padding: .85rem 1rem; font-size: .9rem; color: var(--warn); display: flex; justify-content: space-between; align-items: center; margin-top: 1rem; }
 .btn-upgrade { background: var(--warn); color: #000; border: none; border-radius: 6px; padding: .4rem .75rem; font-weight: 700; cursor: pointer; font-size: .85rem; }
 
 /* Add view */

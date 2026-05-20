@@ -4,8 +4,8 @@
   "description": "Spaced Repetition Engine for text revision",
   "start_url": "/",
   "display": "standalone",
-  "background_color": "#0f0f0f",
-  "theme_color": "#0f0f0f",
+  "background_color": "#fdf8e1",
+  "theme_color": "#fdf8e1",
   "icons": [
     {
       "src": "icon-192.png",
