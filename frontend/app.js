@@ -1,8 +1,17 @@
 const API = '';  // Same-origin; server serves frontend
 
 // ── State ──────────────────────────────────────────────────────────────────
+function getOrCreateUserId() {
+  let id = localStorage.getItem('rf_user_id');
+  if (!id) {
+    id = crypto.randomUUID();
+    localStorage.setItem('rf_user_id', id);
+  }
+  return id;
+}
+
 let state = {
-  userId: localStorage.getItem('rf_user_id') ?? null,
+  userId: getOrCreateUserId(),
   dueItems: [],
   reviewItem: null,
   atLimit: false,
@@ -32,7 +41,6 @@ async function apiFetch(method, path, body) {
 // ── Dashboard ──────────────────────────────────────────────────────────────
 async function loadDashboard() {
   showView('view-dashboard');
-  document.getElementById('user-label').textContent = `User: ${state.userId}`;
 
   const { data } = await apiFetch('GET', `/api/items/${state.userId}`);
   state.dueItems = Array.isArray(data) ? data : [];
@@ -265,27 +273,5 @@ document.getElementById('upgrade-btn').addEventListener('click', () => {
   alert('Upgrade coming soon! Contact us to unlock unlimited decks.');
 });
 
-// ── Login ──────────────────────────────────────────────────────────────────
-async function ensureUser(userId) {
-  await apiFetch('POST', '/api/users', { user_id: userId });
-}
-
-document.getElementById('login-btn').addEventListener('click', async () => {
-  const userId = document.getElementById('login-input').value.trim();
-  if (!userId) return;
-  await ensureUser(userId);
-  state.userId = userId;
-  localStorage.setItem('rf_user_id', userId);
-  await loadDashboard();
-});
-
-document.getElementById('login-input').addEventListener('keydown', (e) => {
-  if (e.key === 'Enter') document.getElementById('login-btn').click();
-});
-
 // ── Init ───────────────────────────────────────────────────────────────────
-if (state.userId) {
-  ensureUser(state.userId).then(loadDashboard);
-} else {
-  showView('view-login');
-}
+apiFetch('POST', '/api/users', { user_id: state.userId }).then(loadDashboard);

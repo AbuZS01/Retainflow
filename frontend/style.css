@@ -19,9 +19,8 @@ html, body { height: 100%; background: var(--bg); color: var(--text); font-famil
 .view { display: none; }
 .view.active { display: block; }
 
-/* Login */
-.logo { font-size: 2rem; font-weight: 700; letter-spacing: -1px; color: var(--accent); margin-bottom: .25rem; }
-.tagline { color: var(--sub); margin-bottom: 2rem; font-size: .95rem; }
+/* Topbar logo */
+.logo-small { font-size: 1.1rem; font-weight: 700; letter-spacing: -0.5px; color: var(--accent); }
 
 .card { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); padding: 1.25rem; display: flex; flex-direction: column; gap: .75rem; }
 
