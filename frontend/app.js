@@ -1,5 +1,17 @@
 const API = '';  // Same-origin; server serves frontend
 
+// ── Starter packs ──────────────────────────────────────────────────────────
+const STARTER_PACKS = [
+  { label: 'Al-Fatiha',     surah:   1, from:  1, to:   7, sub: '7 ayahs · The Opening' },
+  { label: 'Al-Ikhlas',     surah: 112, from:  1, to:   4, sub: '4 ayahs · Sincerity' },
+  { label: 'Al-Falaq',      surah: 113, from:  1, to:   5, sub: '5 ayahs · The Daybreak' },
+  { label: 'An-Nas',        surah: 114, from:  1, to:   6, sub: '6 ayahs · Mankind' },
+  { label: 'Al-Mulk',       surah:  67, from:  1, to:  30, sub: '30 ayahs · The Sovereignty' },
+  { label: 'Ar-Rahman',     surah:  55, from:  1, to:  78, sub: '78 ayahs · The Merciful' },
+  { label: 'Al-Kahf 1–10',  surah:  18, from:  1, to:  10, sub: 'First 10 · The Cave' },
+  { label: 'Ya-Sin',        surah:  36, from:  1, to:  83, sub: '83 ayahs · Ya-Sin' },
+];
+
 // ── State ──────────────────────────────────────────────────────────────────
 function getOrCreateUserId() {
   let id = localStorage.getItem('rf_user_id');
@@ -54,6 +66,44 @@ function incrementStreak() {
   localStorage.setItem('rf_streak_date', today);
   return count;
 }
+
+// ── Text mode (progressive hiding) ────────────────────────────────────────
+const TEXT_MODES  = ['full', 'first', 'hidden'];
+const MODE_LABELS = { full: '👁 Full', first: '👁 First word', hidden: '🙈 Hidden' };
+let textMode = localStorage.getItem('rf_text_mode') ?? 'full';
+
+function updateTextModeBtn() {
+  document.getElementById('text-mode-btn').textContent = MODE_LABELS[textMode];
+}
+
+function applyTextMode(content) {
+  const contentEl = document.getElementById('review-content');
+  const revealBtn = document.getElementById('reveal-btn');
+  if (textMode === 'full') {
+    contentEl.textContent = content;
+    revealBtn.classList.add('hidden');
+  } else if (textMode === 'first') {
+    const firstWord = (content.split('\n')[0] || '').split(' ')[0];
+    contentEl.textContent = firstWord ? firstWord + ' …' : content;
+    revealBtn.classList.add('hidden');
+  } else {
+    contentEl.textContent = '';
+    revealBtn.classList.remove('hidden');
+  }
+}
+
+document.getElementById('text-mode-btn').addEventListener('click', () => {
+  const idx = TEXT_MODES.indexOf(textMode);
+  textMode = TEXT_MODES[(idx + 1) % TEXT_MODES.length];
+  localStorage.setItem('rf_text_mode', textMode);
+  updateTextModeBtn();
+  if (state.reviewItem) applyTextMode(state.reviewItem.content ?? '');
+});
+
+document.getElementById('reveal-btn').addEventListener('click', () => {
+  document.getElementById('review-content').textContent = state.reviewItem?.content ?? '';
+  document.getElementById('reveal-btn').classList.add('hidden');
+});
 
 // ── Haptics ────────────────────────────────────────────────────────────────
 function haptic(pattern) {
@@ -154,12 +204,43 @@ async function removeItem(itemId) {
 // ── Add item — search UI ───────────────────────────────────────────────────
 let selectedSurah = null;
 
+function renderStarterPacks() {
+  const grid = document.getElementById('packs-grid');
+  grid.innerHTML = '';
+  STARTER_PACKS.forEach((pack) => {
+    const card  = document.createElement('button');
+    card.className = 'pack-card';
+    const title = document.createElement('span');
+    title.className = 'pack-title';
+    title.textContent = pack.label;
+    const sub   = document.createElement('span');
+    sub.className = 'pack-sub';
+    sub.textContent = pack.sub;
+    card.appendChild(title);
+    card.appendChild(sub);
+    card.addEventListener('click', () => selectStarterPack(pack));
+    grid.appendChild(card);
+  });
+}
+
+function selectStarterPack(pack) {
+  selectedSurah = { surah: pack.surah, name: pack.label };
+  document.getElementById('range-surah-label').textContent = `${pack.label} (Surah ${pack.surah})`;
+  document.getElementById('range-from').value = pack.from;
+  document.getElementById('range-to').value   = pack.to;
+  document.getElementById('range-selector').classList.remove('hidden');
+  document.getElementById('add-error').classList.add('hidden');
+  updateRangePreview();
+  document.getElementById('range-selector').scrollIntoView({ behavior: 'smooth' });
+}
+
 function openAddView() {
   document.getElementById('search-input').value = '';
   document.getElementById('search-results').innerHTML = '';
   document.getElementById('range-selector').classList.add('hidden');
   document.getElementById('add-error').classList.add('hidden');
   selectedSurah = null;
+  renderStarterPacks();
   showView('view-add');
 }
 
@@ -306,9 +387,10 @@ function startReview(item) {
     state.sessionDone  = 0;
   }
   state.reviewItem = item;
-  document.getElementById('review-item-id').textContent  = item.item_id;
-  document.getElementById('review-content').textContent  = item.content ?? '';
+  document.getElementById('review-item-id').textContent = item.item_id;
   document.getElementById('review-link').href = buildQuranLink(item.item_id);
+  applyTextMode(item.content ?? '');
+  updateTextModeBtn();
   updateProgressBar();
   haptic(15);
   showView('view-review');

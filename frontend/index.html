@@ -35,7 +35,14 @@
     <div id="view-add" class="view">
       <button id="back-btn" class="btn-back">← Back</button>
       <h2>Add to Review Queue</h2>
-      <p class="hint">Search by surah name, English meaning, or any Arabic/English text</p>
+
+      <!-- Starter packs -->
+      <div class="starter-packs">
+        <p class="starter-label">Quick start</p>
+        <div id="packs-grid" class="packs-grid"></div>
+      </div>
+
+      <p class="starter-divider">— or search —</p>
       <div class="search-bar">
         <input id="search-input" type="text" placeholder="e.g. Al-Mulk, mercy, bismillah..." autocomplete="off" aria-label="Search Quran" />
       </div>
@@ -72,8 +79,12 @@
         </div>
       </div>
       <div class="review-card" id="review-card">
-        <div class="item-id-display" id="review-item-id"></div>
+        <div class="review-card-header">
+          <div class="item-id-display" id="review-item-id"></div>
+          <button id="text-mode-btn" class="btn-text-mode" title="Cycle text visibility">👁 Full</button>
+        </div>
         <div class="review-content" id="review-content"></div>
+        <button id="reveal-btn" class="btn-reveal hidden">Tap to reveal</button>
         <a id="review-link" class="review-link" target="_blank" rel="noopener noreferrer">Open on Quran.com →</a>
       </div>
       <p class="swipe-hint">← swipe forgot &nbsp;|&nbsp; swipe easy →</p>
