@@ -144,19 +144,47 @@ async function loadDashboard() {
     document.getElementById('limit-banner').classList.remove('hidden');
   }
 
+  showWelcomeBackIfNeeded();
   renderDueList();
 }
 
-function renderDueList() {
-  const list  = document.getElementById('due-list');
-  const empty = document.getElementById('empty-state');
-  list.innerHTML = '';
+function showWelcomeBackIfNeeded() {
+  const banner   = document.getElementById('welcome-back-banner');
+  const textEl   = document.getElementById('welcome-back-text');
+  const lastDate = localStorage.getItem('rf_streak_date') ?? '';
+  const today    = new Date().toISOString().slice(0, 10);
+  const yesterday = new Date(Date.now() - 86_400_000).toISOString().slice(0, 10);
+  const hasItems = localStorage.getItem('rf_has_items') === 'true';
+  const due      = state.dueItems.length;
 
-  if (state.dueItems.length === 0) {
-    empty.classList.remove('hidden');
+  // Show only when: user has items, was away for >1 day, and has a queue
+  if (!hasItems || !lastDate || lastDate === today || due === 0) {
+    banner.classList.add('hidden');
     return;
   }
-  empty.classList.add('hidden');
+
+  const daysAway = lastDate === yesterday ? 1
+    : Math.round((Date.now() - new Date(lastDate).getTime()) / 86_400_000);
+  const daysText = daysAway === 1 ? 'yesterday' : `${daysAway} days ago`;
+
+  textEl.textContent = `Welcome back! You last reviewed ${daysText} — your schedule has been adjusted. ${due} ayah${due === 1 ? '' : 's'} ready.`;
+  banner.classList.remove('hidden');
+}
+
+function renderDueList() {
+  const list       = document.getElementById('due-list');
+  const onboard    = document.getElementById('empty-onboard');
+  const caughtup   = document.getElementById('empty-caughtup');
+  const hasItems   = localStorage.getItem('rf_has_items') === 'true';
+  list.innerHTML   = '';
+  onboard.classList.add('hidden');
+  caughtup.classList.add('hidden');
+
+  if (state.dueItems.length === 0) {
+    if (hasItems) caughtup.classList.remove('hidden');
+    else          onboard.classList.remove('hidden');
+    return;
+  }
 
   state.dueItems.forEach((item) => {
     const row = document.createElement('div');
@@ -245,6 +273,7 @@ function openAddView() {
 }
 
 document.getElementById('add-btn').addEventListener('click', openAddView);
+document.getElementById('empty-add-btn').addEventListener('click', openAddView);
 document.getElementById('back-btn').addEventListener('click', loadDashboard);
 
 // Live search as user types
@@ -349,6 +378,7 @@ document.getElementById('save-item-btn').addEventListener('click', async () => {
   });
 
   if (status === 201) {
+    localStorage.setItem('rf_has_items', 'true');
     await loadDashboard();
   } else if (status === 403) {
     const errEl = document.getElementById('add-error');

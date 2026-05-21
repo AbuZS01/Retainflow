@@ -14,19 +14,38 @@
     <!-- Dashboard View -->
     <div id="view-dashboard" class="view active">
       <header class="topbar">
-        <h1 class="logo-small">RetainFlow</h1>
+        <div class="logo-group">
+          <h1 class="logo-small">RetainFlow</h1>
+          <p class="logo-tagline">Your personal Quran revision schedule</p>
+        </div>
         <div class="topbar-actions">
           <button id="theme-btn" class="btn-icon" title="Toggle dark mode" aria-label="Toggle dark mode">🌙</button>
           <button id="add-btn" class="btn-icon" title="Add Item" aria-label="Add Item">＋</button>
         </div>
       </header>
-      <div id="due-list" class="item-list"></div>
-      <div id="empty-state" class="empty-state hidden">
-        <p>No reviews due.</p>
-        <p class="sub">Check back later.</p>
+
+      <!-- Welcome back banner — shown after an absence -->
+      <div id="welcome-back-banner" class="welcome-back-banner hidden">
+        <span id="welcome-back-text"></span>
       </div>
+
+      <div id="due-list" class="item-list"></div>
+
+      <!-- Empty state A: no items added yet -->
+      <div id="empty-onboard" class="empty-state hidden">
+        <p class="empty-main">No ayahs in your queue yet.</p>
+        <p class="empty-sub">RetainFlow figures out exactly when each ayah needs review based on how well you know it — no more guessing what to revise.</p>
+        <button id="empty-add-btn" class="btn-primary empty-cta">Add your first ayah →</button>
+      </div>
+
+      <!-- Empty state B: items exist, all caught up -->
+      <div id="empty-caughtup" class="empty-state hidden">
+        <p class="empty-main">All caught up ✓</p>
+        <p class="empty-sub">RetainFlow will bring your ayahs back exactly when they need review. Check back tomorrow.</p>
+      </div>
+
       <div id="limit-banner" class="limit-banner hidden">
-        <strong>Free tier full</strong> — upgrade to add more decks.
+        <span>Starter set full <strong>(5 ranges)</strong> — upgrade to track unlimited ayah ranges.</span>
         <button id="upgrade-btn" class="btn-upgrade">Upgrade</button>
       </div>
     </div>
@@ -35,6 +54,7 @@
     <div id="view-add" class="view">
       <button id="back-btn" class="btn-back">← Back</button>
       <h2>Add to Review Queue</h2>
+      <p class="add-subhead">Returning to something you memorised before? Add it — the algorithm will quickly work out what still needs attention.</p>
 
       <!-- Starter packs -->
       <div class="starter-packs">
