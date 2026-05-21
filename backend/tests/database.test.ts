@@ -41,16 +41,20 @@ describe('addItem — freemium tier limit', () => {
     addItem(db, 'user-free', 'item-1');
     addItem(db, 'user-free', 'item-2');
     addItem(db, 'user-free', 'item-3');
+    addItem(db, 'user-free', 'item-4');
+    addItem(db, 'user-free', 'item-5');
     const items = getDueItems(db, 'user-free');
-    expect(items.length).toBe(3);
+    expect(items.length).toBe(5);
   });
 
-  it('blocks 4th item for free user with LIMIT_REACHED error', () => {
+  it('blocks 6th item for free user with LIMIT_REACHED error', () => {
     createUser(db, 'user-free2');
     addItem(db, 'user-free2', 'item-a');
     addItem(db, 'user-free2', 'item-b');
     addItem(db, 'user-free2', 'item-c');
-    expect(() => addItem(db, 'user-free2', 'item-d')).toThrow('LIMIT_REACHED');
+    addItem(db, 'user-free2', 'item-d');
+    addItem(db, 'user-free2', 'item-e');
+    expect(() => addItem(db, 'user-free2', 'item-f')).toThrow('LIMIT_REACHED');
   });
 
   it('allows more than 3 items for premium user', () => {

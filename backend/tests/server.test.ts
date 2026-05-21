@@ -55,13 +55,13 @@ describe('POST /api/items', () => {
     expect(res.statusCode).toBe(201);
   });
 
-  it('returns 403 with LIMIT_REACHED after 3 free items', async () => {
+  it('returns 403 with LIMIT_REACHED after 5 free items', async () => {
     await app.inject({
       method: 'POST',
       url: '/api/users',
       payload: { user_id: 'free-user-limit' },
     });
-    for (const id of ['a', 'b', 'c']) {
+    for (const id of ['a', 'b', 'c', 'd', 'e']) {
       await app.inject({
         method: 'POST',
         url: '/api/items',
@@ -71,12 +71,12 @@ describe('POST /api/items', () => {
     const res = await app.inject({
       method: 'POST',
       url: '/api/items',
-      payload: { user_id: 'free-user-limit', item_id: 'd' },
+      payload: { user_id: 'free-user-limit', item_id: 'f' },
     });
     expect(res.statusCode).toBe(403);
     const body = JSON.parse(res.body);
     expect(body.error).toBe('LIMIT_REACHED');
-    expect(body.message).toBe('Free tier is limited to 3 parallel tracking decks.');
+    expect(body.message).toBe('Free tier is limited to 5 parallel tracking decks.');
   });
 });
 

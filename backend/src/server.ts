@@ -38,7 +38,7 @@ export function buildApp(dbPath: string): FastifyInstance {
       if (err.message === 'LIMIT_REACHED') {
         return reply.status(403).send({
           error: 'LIMIT_REACHED',
-          message: 'Free tier is limited to 3 parallel tracking decks.',
+          message: 'Free tier is limited to 5 parallel tracking decks.',
         });
       }
       if (err.message.startsWith('USER_NOT_FOUND')) {
