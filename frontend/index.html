@@ -2,25 +2,193 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <meta name="theme-color" content="#fdf8e1" />
-  <title>RetainFlow</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+
+  <!-- ── Primary SEO ──────────────────────────────────────────────────── -->
+  <title>RetainFlow — Quran Revision &amp; Memorisation | Spaced Repetition</title>
+  <meta name="description" content="Struggling to maintain your Quran memorisation? RetainFlow uses spaced repetition to schedule every ayah for review at exactly the right time. Free, no sign-up, works offline." />
+  <meta name="keywords" content="Quran revision, Quran memorisation, hifz review, spaced repetition, SM-2, ayah tracker, Quran app, hifz maintenance" />
+  <meta name="author" content="RetainFlow" />
+  <link rel="canonical" href="https://retainflow.app/" />
+
+  <!-- ── Open Graph (Facebook, WhatsApp, LinkedIn) ───────────────────── -->
+  <meta property="og:type"        content="website" />
+  <meta property="og:url"         content="https://retainflow.app/" />
+  <meta property="og:title"       content="RetainFlow — Keep Your Quran Memorisation" />
+  <meta property="og:description" content="Spaced repetition scheduling for every ayah you've memorised. Free, no sign-up, works offline on any device." />
+  <meta property="og:image"       content="https://retainflow.app/og-image.png" />
+  <meta property="og:locale"      content="en_GB" />
+  <meta property="og:site_name"   content="RetainFlow" />
+
+  <!-- ── Twitter / X Card ────────────────────────────────────────────── -->
+  <meta name="twitter:card"        content="summary_large_image" />
+  <meta name="twitter:title"       content="RetainFlow — Keep Your Quran Memorisation" />
+  <meta name="twitter:description" content="Spaced repetition scheduling for every ayah you've memorised. Free, no sign-up, works offline." />
+  <meta name="twitter:image"       content="https://retainflow.app/og-image.png" />
+
+  <!-- ── PWA & theme ─────────────────────────────────────────────────── -->
+  <meta name="theme-color" content="#fdf8e1" media="(prefers-color-scheme: light)" />
+  <meta name="theme-color" content="#111009"  media="(prefers-color-scheme: dark)" />
+  <meta name="application-name" content="RetainFlow" />
+  <meta name="mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-status-bar-style" content="default" />
+  <meta name="apple-mobile-web-app-title" content="RetainFlow" />
   <link rel="manifest" href="manifest.json" />
+  <link rel="apple-touch-icon" href="icon-192.png" />
+
+  <!-- ── Structured data ─────────────────────────────────────────────── -->
+  <script type="application/ld+json">
+  {
+    "@context": "https://schema.org",
+    "@type": "WebApplication",
+    "name": "RetainFlow",
+    "url": "https://retainflow.app/",
+    "description": "Free Quran revision app using spaced repetition (SM-2) to help hafidh maintain their memorisation.",
+    "applicationCategory": "EducationApplication",
+    "operatingSystem": "Web, Android, iOS",
+    "offers": { "@type": "Offer", "price": "0", "priceCurrency": "USD" },
+    "featureList": [
+      "Spaced repetition (SM-2) scheduling",
+      "Full Quran text — Arabic and English translation",
+      "Audio recitation by four reciters",
+      "Progress tracking and streaks",
+      "Works offline as a PWA",
+      "No account or sign-up required"
+    ],
+    "screenshot": "https://retainflow.app/og-image.png",
+    "inLanguage": "en"
+  }
+  </script>
+
+  <!-- ── Performance: font preconnects ───────────────────────────────── -->
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link rel="dns-prefetch" href="https://everyayah.com" />
+
+  <!-- ── Fonts ────────────────────────────────────────────────────────── -->
+  <!-- Amiri Quran: preloaded as it is above-the-fold in the review view -->
+  <link rel="preload" as="style" href="https://fonts.googleapis.com/css2?family=Amiri+Quran&family=Cormorant+Garamond:ital,wght@0,400;0,500;0,600;1,400;1,500&display=swap" />
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Amiri+Quran&family=Cormorant+Garamond:ital,wght@0,400;0,500;0,600;1,400;1,500&display=swap" media="print" onload="this.media='all'" />
+  <noscript>
+    <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Amiri+Quran&family=Cormorant+Garamond:ital,wght@0,400;0,500;0,600;1,400;1,500&display=swap" />
+  </noscript>
+
   <link rel="stylesheet" href="style.css" />
 </head>
 <body>
   <div id="app">
 
+    <!-- Landing Page — shown only on first visit -->
+    <div id="view-landing" class="view active">
+      <div class="lp-scroll">
+        <div class="lp-wrap">
+
+          <!-- Nav -->
+          <nav class="lp-nav" aria-label="Site header">
+            <span class="lp-logo-text">RetainFlow</span>
+          </nav>
+
+          <!-- Hero -->
+          <section class="lp-hero">
+            <svg class="lp-rosette" viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+              <circle cx="50" cy="50" r="46" stroke="currentColor" stroke-width="0.5" fill="none" opacity="0.22"/>
+              <circle cx="50" cy="50" r="31" stroke="currentColor" stroke-width="0.5" fill="none" opacity="0.18"/>
+              <rect x="17" y="17" width="66" height="66" stroke="currentColor" stroke-width="0.9" fill="none" opacity="0.32" transform="rotate(0 50 50)"/>
+              <rect x="17" y="17" width="66" height="66" stroke="currentColor" stroke-width="0.9" fill="none" opacity="0.32" transform="rotate(45 50 50)"/>
+              <line x1="50" y1="4" x2="50" y2="96" stroke="currentColor" stroke-width="0.4" opacity="0.12"/>
+              <line x1="4" y1="50" x2="96" y2="50" stroke="currentColor" stroke-width="0.4" opacity="0.12"/>
+              <line x1="15" y1="15" x2="85" y2="85" stroke="currentColor" stroke-width="0.4" opacity="0.12"/>
+              <line x1="85" y1="15" x2="15" y2="85" stroke="currentColor" stroke-width="0.4" opacity="0.12"/>
+              <circle cx="50" cy="50" r="9" stroke="currentColor" stroke-width="0.9" fill="none" opacity="0.38"/>
+              <circle cx="50" cy="50" r="2.5" fill="currentColor" opacity="0.45"/>
+            </svg>
+
+            <p class="lp-eyebrow">Quran revision · Spaced repetition</p>
+            <h1 class="lp-headline">You've memorised<br><em>the words.</em></h1>
+            <p class="lp-sub">RetainFlow schedules every ayah for review at exactly the moment it's about to slip — so the Quran you've worked to memorise stays with you.</p>
+            <button id="landing-cta-btn" class="lp-cta-btn">Begin your revision →</button>
+            <p class="lp-no-signup">No sign-up. No email. Opens in seconds.</p>
+          </section>
+
+          <!-- Who it's for -->
+          <section class="lp-divider-band">
+            <p class="lp-divider-text">For anyone who has memorised Quran and wants to keep it.</p>
+          </section>
+
+          <!-- Three features -->
+          <section class="lp-features" aria-label="Features">
+            <div class="lp-feature">
+              <div class="lp-feature-glyph">◈</div>
+              <h3>Track any range</h3>
+              <p>Add individual ayahs or full surahs. Each range gets its own revision schedule — nothing gets lumped together.</p>
+            </div>
+            <div class="lp-feature">
+              <div class="lp-feature-glyph">◈</div>
+              <h3>Optimal timing</h3>
+              <p>The SM-2 algorithm calculates exactly when each range needs attention. Not too soon to waste your time. Not too late to forget.</p>
+            </div>
+            <div class="lp-feature">
+              <div class="lp-feature-glyph">◈</div>
+              <h3>Four reciters</h3>
+              <p>Listen to Al-Hudhayfee, Al-Budair, Al-Juhanī or Al-Akhdar while you review — correct your pronunciation as you revise.</p>
+            </div>
+          </section>
+
+          <!-- How it works -->
+          <section class="lp-how" aria-label="How it works">
+            <h2 class="lp-section-title">How it works</h2>
+            <div class="lp-steps">
+              <div class="lp-step">
+                <span class="lp-step-n">01</span>
+                <div class="lp-step-body">
+                  <strong>Add an ayah range</strong>
+                  <p>Search by surah name, pick a curated starter pack, or set a custom range. The Arabic text loads instantly for reference.</p>
+                </div>
+              </div>
+              <div class="lp-step">
+                <span class="lp-step-n">02</span>
+                <div class="lp-step-body">
+                  <strong>Review when it's due</strong>
+                  <p>Open the app. Recite from memory. Mark how it went — Forgot, Hard, Good, or Easy. That's the whole session.</p>
+                </div>
+              </div>
+              <div class="lp-step">
+                <span class="lp-step-n">03</span>
+                <div class="lp-step-body">
+                  <strong>The algorithm adjusts</strong>
+                  <p>Strong recall pushes the next review further out. Weak recall brings it back sooner. Your effort goes exactly where it's needed.</p>
+                </div>
+              </div>
+            </div>
+          </section>
+
+          <!-- Final CTA -->
+          <footer class="lp-footer">
+            <svg class="lp-footer-rosette" viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+              <rect x="17" y="17" width="66" height="66" stroke="currentColor" stroke-width="0.9" fill="none" opacity="0.25" transform="rotate(0 50 50)"/>
+              <rect x="17" y="17" width="66" height="66" stroke="currentColor" stroke-width="0.9" fill="none" opacity="0.25" transform="rotate(45 50 50)"/>
+              <circle cx="50" cy="50" r="9" stroke="currentColor" stroke-width="0.9" fill="none" opacity="0.3"/>
+              <circle cx="50" cy="50" r="2.5" fill="currentColor" opacity="0.35"/>
+            </svg>
+            <p class="lp-footer-headline">Your memorisation deserves to last.</p>
+            <button id="landing-cta-btn-2" class="lp-cta-btn">Start — it's free →</button>
+            <p class="lp-footer-note">Free for up to 5 ayah ranges. No account needed.</p>
+          </footer>
+
+        </div>
+      </div>
+    </div>
+
     <!-- Dashboard View -->
-    <div id="view-dashboard" class="view active">
+    <div id="view-dashboard" class="view">
       <header class="topbar">
         <div class="logo-group">
-          <h1 class="logo-small">RetainFlow</h1>
+          <div class="logo-row">
+            <h1 class="logo-small">RetainFlow</h1>
+            <span id="streak-chip" class="streak-chip hidden"></span>
+          </div>
           <p class="logo-tagline">Your personal Quran revision schedule</p>
-        </div>
-        <div class="topbar-actions">
-          <button id="theme-btn" class="btn-icon" title="Toggle dark mode" aria-label="Toggle dark mode">🌙</button>
-          <button id="add-btn" class="btn-icon" title="Add Item" aria-label="Add Item">＋</button>
         </div>
       </header>
 
@@ -28,6 +196,11 @@
       <div id="welcome-back-banner" class="welcome-back-banner hidden">
         <span id="welcome-back-text"></span>
       </div>
+
+      <!-- Start session CTA — visible when items are due -->
+      <button id="start-session-btn" class="start-session-btn hidden" aria-label="Start review session">
+        Review <span id="start-session-count">0</span> due now →
+      </button>
 
       <div id="due-list" class="item-list"></div>
 
@@ -44,15 +217,65 @@
         <p class="empty-sub">RetainFlow will bring your ayahs back exactly when they need review. Check back tomorrow.</p>
       </div>
 
+      <!-- Daily goal progress -->
+      <div id="goal-bar" class="goal-bar hidden">
+        <div class="goal-bar-top">
+          <span id="goal-label" class="goal-label">0 / 10 today</span>
+          <button id="goal-edit-btn" class="goal-edit-btn" aria-label="Change daily goal">Change goal</button>
+        </div>
+        <div class="goal-track"><div id="goal-fill" class="goal-fill"></div></div>
+        <!-- Inline goal editor — shown when "Change goal" is clicked -->
+        <div id="goal-editor" class="goal-editor hidden">
+          <input id="goal-input" type="number" min="1" max="200" class="goal-input" aria-label="Daily goal" />
+          <button id="goal-save-btn" class="goal-save-btn">Save</button>
+          <button id="goal-cancel-btn" class="goal-cancel-btn">✕</button>
+        </div>
+      </div>
+
+      <!-- 7-day upcoming strip -->
+      <div id="upcoming-strip" class="upcoming-strip hidden"></div>
+
       <div id="limit-banner" class="limit-banner hidden">
         <span>Starter set full <strong>(5 ranges)</strong> — upgrade to track unlimited ayah ranges.</span>
         <button id="upgrade-btn" class="btn-upgrade">Upgrade</button>
       </div>
     </div>
 
+    <!-- Profile Picker Overlay -->
+    <div id="profile-overlay" class="profile-overlay hidden" role="dialog" aria-label="Profile picker">
+      <div class="profile-panel">
+        <div class="profile-panel-hd">
+          <span class="profile-panel-title">Profiles</span>
+          <button id="profile-close-btn" class="btn-icon-sm" aria-label="Close">✕</button>
+        </div>
+        <div id="profile-list" class="profile-list"></div>
+        <button id="profile-add-btn" class="profile-add-btn">＋ New profile</button>
+        <div id="profile-new-form" class="profile-new-form hidden">
+          <input id="profile-name-input" type="text" placeholder="e.g. Amir, Kids, Wife…" maxlength="30" aria-label="Profile name" />
+          <button id="profile-save-btn" class="btn-primary">Create</button>
+        </div>
+        <!-- Dark mode toggle -->
+        <div class="profile-theme-section">
+          <p class="profile-notif-label">Appearance</p>
+          <div class="notif-row">
+            <span style="font-size:.875rem;color:var(--text);flex:1">Dark mode</span>
+            <button id="theme-btn" class="notif-toggle-btn" aria-label="Toggle dark mode">🌙</button>
+          </div>
+        </div>
+        <!-- Daily reminder -->
+        <div class="profile-notif-section">
+          <p class="profile-notif-label">Daily reminder</p>
+          <div class="notif-row">
+            <input id="notif-time" type="time" value="08:00" class="notif-time-input" aria-label="Reminder time" />
+            <button id="notif-toggle" class="notif-toggle-btn">Enable</button>
+          </div>
+          <p id="notif-status" class="notif-status"></p>
+        </div>
+      </div>
+    </div>
+
     <!-- Add Item View -->
     <div id="view-add" class="view">
-      <button id="back-btn" class="btn-back">← Back</button>
       <h2>Add to Review Queue</h2>
       <p class="add-subhead">Returning to something you memorised before? Add it — the algorithm will quickly work out what still needs attention.</p>
 
@@ -60,6 +283,13 @@
       <div class="starter-packs">
         <p class="starter-label">Quick start</p>
         <div id="packs-grid" class="packs-grid"></div>
+      </div>
+
+      <!-- Juz browser -->
+      <div class="juz-section">
+        <p class="starter-label">Browse by Juz</p>
+        <div id="juz-grid" class="juz-grid"></div>
+        <div id="juz-surahs" class="juz-surahs hidden"></div>
       </div>
 
       <p class="starter-divider">— or search —</p>
@@ -84,6 +314,15 @@
           </div>
         </div>
         <div id="range-preview" class="range-preview"></div>
+        <!-- Difficulty calibration -->
+        <div class="difficulty-picker">
+          <p class="difficulty-label">How well do you know this?</p>
+          <div class="difficulty-pills">
+            <button class="diff-pill" data-difficulty="rusty">Very rusty</button>
+            <button class="diff-pill diff-pill--active" data-difficulty="fresh">Freshly memorised</button>
+            <button class="diff-pill" data-difficulty="solid">Know it well</button>
+          </div>
+        </div>
         <button id="save-item-btn" class="btn-primary">Add to Review Queue</button>
         <div id="add-error" class="error-msg hidden" role="alert"></div>
       </div>
@@ -91,28 +330,53 @@
 
     <!-- Review View -->
     <div id="view-review" class="view">
-      <div class="review-topbar">
-        <button id="review-back-btn" class="btn-back">← Dashboard</button>
+      <!-- Zone 1: fixed top bar -->
+      <div class="review-top-bar">
+        <button id="review-back-btn" class="btn-back review-back">← Dashboard</button>
         <div class="session-progress">
           <span id="review-progress-text" class="progress-text"></span>
           <div class="progress-track"><div id="progress-fill" class="progress-fill"></div></div>
         </div>
       </div>
-      <div class="review-card" id="review-card">
-        <div class="review-card-header">
-          <div class="item-id-display" id="review-item-id"></div>
-          <button id="text-mode-btn" class="btn-text-mode" title="Cycle text visibility">👁 Full</button>
+
+      <!-- Zone 2: scrollable content -->
+      <div class="review-scroll-area">
+        <div class="review-card" id="review-card">
+          <div class="review-card-header">
+            <div class="item-id-display" id="review-item-id"></div>
+            <div style="display:flex;gap:.4rem;flex-shrink:0">
+              <button id="translation-btn" class="btn-text-mode" title="Toggle translation" aria-label="Toggle English translation">EN ✓</button>
+              <button id="text-mode-btn" class="btn-text-mode" title="Cycle text visibility">👁 Full</button>
+            </div>
+          </div>
+          <div class="review-content" id="review-content"></div>
+          <button id="reveal-btn" class="btn-reveal hidden">Tap to reveal</button>
+          <!-- Audio player -->
+          <div id="audio-player" class="audio-player hidden">
+            <select id="reciter-select" class="reciter-select" aria-label="Choose reciter">
+              <option value="Hudhaify_128kbps">Shaykh Ali al-Hudhayfee</option>
+              <option value="Salah_Al_Budair_128kbps">Shaykh Salah al-Budair</option>
+              <option value="Abdullaah_3awwaad_Al-Juhaynee_128kbps">Abdullāh al-Juhanī</option>
+              <option value="Ibrahim_Akhdar_64kbps">Sheikh Ibrahim al-Akhdar</option>
+            </select>
+            <div class="audio-controls">
+              <button id="audio-play-btn" class="audio-play-btn" aria-label="Play audio">▶</button>
+              <span id="audio-ayah-label" class="audio-ayah-label"></span>
+            </div>
+          </div>
+          <a id="review-link" class="review-link" target="_blank" rel="noopener noreferrer">Open on Quran.com →</a>
         </div>
-        <div class="review-content" id="review-content"></div>
-        <button id="reveal-btn" class="btn-reveal hidden">Tap to reveal</button>
-        <a id="review-link" class="review-link" target="_blank" rel="noopener noreferrer">Open on Quran.com →</a>
       </div>
-      <p class="swipe-hint">← swipe forgot &nbsp;|&nbsp; swipe easy →</p>
-      <div class="quality-btns">
-        <button class="q-btn q-forgot" data-quality="forgot">Forgot</button>
-        <button class="q-btn q-hard"   data-quality="hard">Hard</button>
-        <button class="q-btn q-good"   data-quality="good">Good</button>
-        <button class="q-btn q-easy"   data-quality="easy">Easy</button>
+
+      <!-- Zone 3: always-visible bottom dock -->
+      <div class="review-bottom-dock">
+        <div class="quality-btns">
+          <button class="q-btn q-forgot" data-quality="forgot">Forgot<span class="q-key">1</span></button>
+          <button class="q-btn q-hard"   data-quality="hard">Hard<span class="q-key">2</span></button>
+          <button class="q-btn q-good"   data-quality="good">Good<span class="q-key">3</span></button>
+          <button class="q-btn q-easy"   data-quality="easy">Easy<span class="q-key">4</span></button>
+        </div>
+        <button id="snooze-btn" class="btn-snooze">⏳ Remind me tomorrow</button>
       </div>
     </div>
 
@@ -137,7 +401,30 @@
       </div>
     </div>
 
-  </div>
+    <!-- Queue View — all tracked ranges grouped by when due -->
+    <div id="view-queue" class="view">
+      <h2>My Queue</h2>
+      <p class="add-subhead">All your tracked ayah ranges, grouped by when they need review.</p>
+      <div id="queue-content" class="queue-content"></div>
+    </div>
+
+    <!-- Stats View -->
+    <div id="view-stats" class="view">
+      <h2>Your Progress</h2>
+
+      <div id="stats-grid" class="stats-kpi-grid"></div>
+
+      <p class="stats-section-title">Last 14 days</p>
+      <div id="stats-heatmap" class="stats-heatmap"></div>
+
+      <p class="stats-section-title">Quality breakdown</p>
+      <div id="stats-quality" class="stats-quality-wrap"></div>
+
+      <p class="stats-section-title">Recent reviews</p>
+      <div id="stats-log" class="stats-log-list"></div>
+    </div>
+
+  </div><!-- /#app -->
 
   <script src="app.js"></script>
   <script>
@@ -145,5 +432,27 @@
       navigator.serviceWorker.register('/sw.js');
     }
   </script>
+  <!-- Bottom navigation bar — hidden on review and landing -->
+  <nav id="bottom-nav" class="bottom-nav" aria-label="Main navigation">
+    <button class="nav-tab active" data-action="home" aria-label="Home">
+      <span class="nav-icon">🏠</span>
+      <span class="nav-label">Home</span>
+    </button>
+    <button class="nav-tab" data-action="queue" aria-label="My Queue">
+      <span class="nav-icon">☰</span>
+      <span class="nav-label">Queue</span>
+    </button>
+    <button class="nav-tab nav-tab--add" data-action="add" aria-label="Add ayah range">
+      <span class="nav-icon">＋</span>
+    </button>
+    <button class="nav-tab" data-action="stats" aria-label="Progress">
+      <span class="nav-icon">📊</span>
+      <span class="nav-label">Stats</span>
+    </button>
+    <button class="nav-tab" data-action="profile" aria-label="Profile">
+      <span class="nav-icon">👤</span>
+      <span class="nav-label">Profile</span>
+    </button>
+  </nav>
 </body>
 </html>
