@@ -28,8 +28,6 @@
 
 html, body { height: 100%; background: var(--bg); color: var(--text); font-family: system-ui, sans-serif; }
 
-/* iOS home-bar safe area — bottom nav handles this now */
-body { }
 
 #app { max-width: 480px; margin: 0 auto; padding: 1.5rem 1rem calc(56px + env(safe-area-inset-bottom, 0) + 1rem); min-height: 100%; }
 
@@ -454,7 +452,7 @@ h2 { font-size: 1.35rem; margin-bottom: .35rem; }
 .btn-snooze:hover { border-color: var(--accent); color: var(--text); }
 
 /* ── Profile overlay ──────────────────────────────────────────────────────── */
-.profile-overlay { position: fixed; inset: 0; background: rgba(0,0,0,.35); z-index: 100; display: flex; align-items: flex-end; justify-content: center; }
+.profile-overlay { position: fixed; inset: 0; background: rgba(0,0,0,.35); z-index: 110; display: flex; align-items: flex-end; justify-content: center; }
 .profile-overlay.hidden { display: none !important; }
 .profile-panel { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius) var(--radius) 0 0; padding: 1.25rem; width: 100%; max-width: 480px; }
 .profile-panel-hd { display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem; }
@@ -635,7 +633,7 @@ h2 { font-size: 1.35rem; margin-bottom: .35rem; }
 }
 
 @media (max-width: 480px) {
-  .bottom-nav { left: 0; right: 0; transform: none; max-width: 100%; }
+  .bottom-nav { left: 0; transform: none; max-width: 100%; }
 }
 
 .bottom-nav.nav-hidden { display: none; }
