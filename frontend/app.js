@@ -306,7 +306,7 @@ function haptic(pattern) {
 
 // ── View helpers ───────────────────────────────────────────────────────────
 // Views where the bottom nav must be hidden
-const NAV_HIDDEN_VIEWS = new Set(['view-review', 'view-landing']);
+const NAV_HIDDEN_VIEWS = new Set(['view-review', 'view-landing', 'view-complete']);
 
 function showView(id) {
   document.querySelectorAll('.view').forEach((v) => v.classList.remove('active'));
