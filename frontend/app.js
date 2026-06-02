@@ -887,6 +887,8 @@ function updateProgressBar() {
 }
 
 function startReview(item) {
+  document.getElementById('rating-key-popover')?.classList.remove('open');
+  document.getElementById('rating-key-btn')?.setAttribute('aria-expanded', 'false');
   // Capture total on first card of a session
   if (state.sessionTotal === 0) {
     state.sessionTotal = state.dueItems.length;
