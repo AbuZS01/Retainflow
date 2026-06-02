@@ -13,10 +13,19 @@ export interface ItemRow {
   item_id: string;
   user_id: string;
   content: string;
+  notes: string;
   interval: number;
   ease_factor: number;
   repetitions: number;
   next_due_date: number;
+}
+
+export interface LogRow {
+  id: number;
+  item_id: string;
+  user_id: string;
+  quality: string;
+  reviewed_at: number;
 }
 
 export function initDb(path: string): Db {
@@ -33,11 +42,20 @@ export function initDb(path: string): Db {
       item_id       TEXT PRIMARY KEY,
       user_id       TEXT NOT NULL,
       content       TEXT NOT NULL DEFAULT '',
+      notes         TEXT NOT NULL DEFAULT '',
       interval      INTEGER NOT NULL DEFAULT 1,
       ease_factor   REAL NOT NULL DEFAULT 2.5,
       repetitions   INTEGER NOT NULL DEFAULT 0,
       next_due_date INTEGER NOT NULL DEFAULT 0,
       FOREIGN KEY (user_id) REFERENCES users(user_id)
+    );
+
+    CREATE TABLE IF NOT EXISTS review_log (
+      id          INTEGER PRIMARY KEY AUTOINCREMENT,
+      item_id     TEXT    NOT NULL,
+      user_id     TEXT    NOT NULL,
+      quality     TEXT    NOT NULL,
+      reviewed_at INTEGER NOT NULL
     );
 
     CREATE INDEX IF NOT EXISTS idx_items_user ON items(user_id);
@@ -48,6 +66,11 @@ export function initDb(path: string): Db {
   if (!itemCols.includes('content')) {
     db.exec("ALTER TABLE items ADD COLUMN content TEXT NOT NULL DEFAULT ''");
   }
+  if (!itemCols.includes('notes')) {
+    db.exec("ALTER TABLE items ADD COLUMN notes TEXT NOT NULL DEFAULT ''");
+  }
+
+  db.exec(`CREATE INDEX IF NOT EXISTS idx_log_user ON review_log(user_id, reviewed_at);`);
 
   return db;
 }
@@ -62,7 +85,20 @@ export function getUser(db: Db, userId: string): UserRow | null {
   );
 }
 
-export function addItem(db: Db, userId: string, itemId: string, content: string = ''): void {
+export interface InitialDifficulty {
+  interval?: number;
+  ease_factor?: number;
+  repetitions?: number;
+  next_due_date?: number;
+}
+
+export function addItem(
+  db: Db,
+  userId: string,
+  itemId: string,
+  content: string = '',
+  initial: InitialDifficulty = {}
+): void {
   const user = getUser(db, userId);
   if (!user) throw new Error(`USER_NOT_FOUND: ${userId}`);
 
@@ -77,12 +113,17 @@ export function addItem(db: Db, userId: string, itemId: string, content: string 
     }
   }
 
+  const interval     = initial.interval     ?? 1;
+  const ease_factor  = initial.ease_factor  ?? 2.5;
+  const repetitions  = initial.repetitions  ?? 0;
+  const next_due_date = initial.next_due_date ?? Date.now();
+
   db
     .prepare(
-      `INSERT INTO items (item_id, user_id, content, next_due_date)
-       VALUES (?, ?, ?, ?)`
+      `INSERT INTO items (item_id, user_id, content, interval, ease_factor, repetitions, next_due_date)
+       VALUES (?, ?, ?, ?, ?, ?, ?)`
     )
-    .run(itemId, userId, content, Date.now());
+    .run(itemId, userId, content, interval, ease_factor, repetitions, next_due_date);
 }
 
 export function getDueItems(db: Db, userId: string): ItemRow[] {
@@ -115,6 +156,51 @@ export function deleteItem(db: Db, itemId: string): void {
   if (changes === 0) throw new Error(`ITEM_NOT_FOUND: ${itemId}`);
 }
 
+// ── Notes ───────────────────────────────────────────────────────────────────
+export function updateNotes(db: Db, itemId: string, notes: string): void {
+  db.prepare('UPDATE items SET notes = ? WHERE item_id = ?').run(notes, itemId);
+}
+
+// ── Snooze ──────────────────────────────────────────────────────────────────
+export function snoozeItem(db: Db, itemId: string): void {
+  const tomorrow = Date.now() + 86_400_000;
+  db.prepare('UPDATE items SET next_due_date = ? WHERE item_id = ?').run(tomorrow, itemId);
+}
+
+// ── All items (for stats) ───────────────────────────────────────────────────
+export function getAllItems(db: Db, userId: string): ItemRow[] {
+  return db.prepare(
+    'SELECT * FROM items WHERE user_id = ? ORDER BY next_due_date ASC'
+  ).all(userId) as ItemRow[];
+}
+
+// ── Review log ──────────────────────────────────────────────────────────────
+export function logReview(db: Db, itemId: string, userId: string, quality: string): void {
+  db.prepare(
+    'INSERT INTO review_log (item_id, user_id, quality, reviewed_at) VALUES (?, ?, ?, ?)'
+  ).run(itemId, userId, quality, Date.now());
+}
+
+export function getReviewLog(db: Db, userId: string, limit = 100): LogRow[] {
+  return db.prepare(
+    `SELECT * FROM review_log WHERE user_id = ? ORDER BY reviewed_at DESC LIMIT ?`
+  ).all(userId, limit) as LogRow[];
+}
+
+// ── Stats ────────────────────────────────────────────────────────────────────
+export function getStats(db: Db, userId: string): {
+  totalItems: number;
+  allTimeReviews: number;
+} {
+  const totalItems = (
+    db.prepare('SELECT COUNT(*) as n FROM items WHERE user_id = ?').get(userId) as { n: number }
+  ).n;
+  const allTimeReviews = (
+    db.prepare('SELECT COUNT(*) as n FROM review_log WHERE user_id = ?').get(userId) as { n: number }
+  ).n;
+  return { totalItems, allTimeReviews };
+}
+
 export interface AyahRow {
   id: number;
   surah: number;
@@ -125,15 +211,22 @@ export interface AyahRow {
 }
 
 export function searchAyahs(db: Db, query: string, limit = 20): AyahRow[] {
-  // FTS search first, fall back to LIKE if FTS table empty
+  // Strip FTS5 special characters to prevent query-syntax injection.
+  // Wrapping in double-quotes makes it a phrase search; the trailing * allows prefix matching.
+  const safeQuery = '"' + query.replace(/["*^():\-]/g, ' ').trim() + '"*';
+
+  // FTS search first, fall back to LIKE if FTS table is empty or query is malformed
   try {
-    return db.prepare(
+    const rows = db.prepare(
       `SELECT q.* FROM quran_ayahs q
        JOIN quran_fts f ON f.rowid = q.id
        WHERE quran_fts MATCH ?
        ORDER BY rank
        LIMIT ?`
-    ).all(query + '*', limit) as AyahRow[];
+    ).all(safeQuery, limit) as AyahRow[];
+    // If FTS found nothing, try a broader fallback
+    if (rows.length > 0) return rows;
+    throw new Error('no fts results');
   } catch {
     return db.prepare(
       `SELECT * FROM quran_ayahs
