@@ -901,7 +901,30 @@ function startReview(item) {
   updateProgressBar();
   initAudioForItem(item.item_id);
   haptic(15);
+  const intervals = previewIntervals(item);
+  ['forgot', 'hard', 'good', 'easy'].forEach(q => {
+    const n = intervals[q];
+    document.getElementById(`rk-days-${q}`).textContent = n === 1 ? '1 day' : `${n} days`;
+  });
   showView('view-review');
+}
+
+function computeInterval(card, quality) {
+  const qMap = { forgot: 0, hard: 2, good: 4, easy: 5 };
+  const q = qMap[quality];
+  if (q < 3) return 1;
+  if (card.repetitions === 0) return 1;
+  if (card.repetitions === 1) return 6;
+  return Math.round(card.interval * card.ease_factor);
+}
+
+function previewIntervals(card) {
+  return {
+    forgot: computeInterval(card, 'forgot'),
+    hard:   computeInterval(card, 'hard'),
+    good:   computeInterval(card, 'good'),
+    easy:   computeInterval(card, 'easy'),
+  };
 }
 
 async function submitReview(quality) {
@@ -939,6 +962,23 @@ document.getElementById('snooze-btn').addEventListener('click', async () => {
 
 document.querySelectorAll('.q-btn').forEach((btn) => {
   btn.addEventListener('click', () => submitReview(btn.dataset.quality));
+});
+
+// ── Rating key popover ─────────────────────────────────────────────────────
+const ratingKeyBtn = document.getElementById('rating-key-btn');
+const ratingKeyPopover = document.getElementById('rating-key-popover');
+
+ratingKeyBtn.addEventListener('click', (e) => {
+  e.stopPropagation();
+  const open = ratingKeyPopover.classList.toggle('open');
+  ratingKeyBtn.setAttribute('aria-expanded', String(open));
+});
+
+document.addEventListener('click', (e) => {
+  if (!ratingKeyPopover.contains(e.target) && e.target !== ratingKeyBtn) {
+    ratingKeyPopover.classList.remove('open');
+    ratingKeyBtn.setAttribute('aria-expanded', 'false');
+  }
 });
 
 // ── Keyboard shortcuts (desktop) ──────────────────────────────────────────
