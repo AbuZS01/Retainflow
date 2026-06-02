@@ -370,6 +370,16 @@
 
       <!-- Zone 3: always-visible bottom dock -->
       <div class="review-bottom-dock">
+        <div class="rating-key-wrap">
+          <span class="dock-label">How did it go?</span>
+          <button id="rating-key-btn" class="rating-key-btn" aria-label="Rating key" aria-expanded="false">ⓘ</button>
+          <div id="rating-key-popover" class="rating-key-popover" role="tooltip">
+            <div class="rk-row"><span class="rk-dot rk-forgot"></span><span class="rk-label">Forgot</span><span class="rk-days" id="rk-days-forgot">—</span></div>
+            <div class="rk-row"><span class="rk-dot rk-hard"></span><span class="rk-label">Hard</span><span class="rk-days" id="rk-days-hard">—</span></div>
+            <div class="rk-row"><span class="rk-dot rk-good"></span><span class="rk-label">Good</span><span class="rk-days" id="rk-days-good">—</span></div>
+            <div class="rk-row"><span class="rk-dot rk-easy"></span><span class="rk-label">Easy</span><span class="rk-days" id="rk-days-easy">—</span></div>
+          </div>
+        </div>
         <div class="quality-btns">
           <button class="q-btn q-forgot" data-quality="forgot">Forgot<span class="q-key">1</span></button>
           <button class="q-btn q-hard"   data-quality="hard">Hard<span class="q-key">2</span></button>
