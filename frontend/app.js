@@ -905,6 +905,7 @@ function startReview(item) {
 }
 
 async function submitReview(quality) {
+  if (!state.reviewItem) return;
   stopAudio();
   haptic(25);
   incrementTodayCount();
