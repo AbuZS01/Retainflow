@@ -730,6 +730,72 @@ h2 { font-size: 1.35rem; margin-bottom: .35rem; }
   background: var(--surface);
 }
 
+/* Rating key */
+.rating-key-wrap {
+  position: relative;
+  display: flex;
+  align-items: center;
+  margin-bottom: .5rem;
+}
+.dock-label {
+  flex: 1;
+  font-size: .75rem;
+  color: var(--text-muted, #888);
+  font-weight: 500;
+  text-transform: uppercase;
+  letter-spacing: .04em;
+}
+.rating-key-btn {
+  background: none;
+  border: 1px solid var(--border);
+  border-radius: 50%;
+  width: 24px;
+  height: 24px;
+  font-size: .75rem;
+  line-height: 1;
+  cursor: pointer;
+  color: var(--text-muted, #888);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+.rating-key-btn:hover { opacity: .7; }
+.rating-key-popover {
+  display: none;
+  position: absolute;
+  bottom: calc(100% + .5rem);
+  right: 0;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  box-shadow: 0 4px 16px rgba(0,0,0,.15);
+  padding: .6rem .8rem;
+  min-width: 180px;
+  z-index: 101;
+}
+.rating-key-popover.open { display: block; }
+.rk-row {
+  display: flex;
+  align-items: center;
+  gap: .5rem;
+  padding: .2rem 0;
+  font-size: .85rem;
+}
+.rk-dot {
+  display: inline-block;
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+.rk-forgot { background: #b03030; }
+.rk-hard   { background: #b06000; }
+.rk-good   { background: #2a6090; }
+.rk-easy   { background: var(--accent); }
+.rk-label  { flex: 1; }
+.rk-days   { font-weight: 600; color: var(--accent); }
+
 /* review-card sits inside scroll-area — no need for its own margin */
 #view-review .review-card {
   margin: 0 0 .75rem;
