@@ -1,10 +1,11 @@
-# RetainFlow — Session Summary
+# muraja'ah — Session Summary
 
-## What RetainFlow Is
+## What It Is
 
-A mobile-first PWA for Quran memorisation using the SM-2 spaced repetition algorithm. Tracks ayah ranges, schedules reviews, and helps hafidh maintain their hifz.
+A mobile-first PWA for Quran memorisation using the SM-2 spaced repetition algorithm. Tracks ayah ranges, schedules reviews, and helps hafidh maintain their hifz. Previously called "RetainFlow".
 
 **Server:** `cd ~/Retainflow/backend && npm run dev` → `http://localhost:3000`
+**iPhone:** `$env:HOST="0.0.0.0"; npm run dev` then visit `http://192.168.1.204:3000` from Safari
 
 ---
 
@@ -26,16 +27,18 @@ A mobile-first PWA for Quran memorisation using the SM-2 spaced repetition algor
 | Method | Path | Description |
 |--------|------|-------------|
 | POST | `/api/users` | Create/ensure user |
-| POST | `/api/items` | Add item (with `initial` difficulty params, 5-item free tier) |
+| POST | `/api/items` | Add item (auto-creates user; 5-item free tier) |
 | GET | `/api/items/:userId` | Get due items |
 | GET | `/api/items/:userId/all` | Get all items (queue view + upcoming strip) |
-| PUT | `/api/items/:itemId/review` | Submit review (with ownership check) |
-| DELETE | `/api/items/:itemId` | Delete item (with ownership check) |
+| PUT | `/api/items/:itemId/review` | Submit review (`quality` + `user_id` required in body) |
+| DELETE | `/api/items/:itemId` | Delete item (`user_id` required in body) |
 | GET | `/api/stats/:userId` | Stats + review log |
-| PUT | `/api/items/:itemId/notes` | Save notes (10k char limit) |
-| PUT | `/api/items/:itemId/snooze` | Snooze to tomorrow |
+| PUT | `/api/items/:itemId/notes` | Save notes (`user_id` required in body) |
+| PUT | `/api/items/:itemId/snooze` | Snooze to tomorrow (`user_id` required in body) |
 | GET | `/api/quran/search?q=` | FTS5 Quran search |
 | GET | `/api/quran/:surah/:from/:to` | Get ayah range |
+
+**Important:** review, delete, notes, and snooze all now require `user_id` in the request body.
 
 ---
 
@@ -43,90 +46,68 @@ A mobile-first PWA for Quran memorisation using the SM-2 spaced repetition algor
 
 ### `backend/src/server.ts`
 - Full Fastify REST API
+- `bodyLimit: 600_000` on Fastify instance
 - CORS locked to `ALLOWED_ORIGINS` env var (defaults to localhost)
 - Gzip compression via `@fastify/compress`
 - Security headers on all responses: `X-Content-Type-Options`, `X-Frame-Options`, `Referrer-Policy`, `Permissions-Policy`
-- Cache headers: `no-cache` for `index.html`/`sw.js`, `max-age=86400` for JS/CSS/images, `no-store` for API responses
-- Host/port from `process.env.HOST` / `process.env.PORT` (defaults `127.0.0.1:3000`)
+- **CSP header** on HTML responses (`script-src 'self' 'unsafe-inline'`, `style-src fonts.googleapis.com 'unsafe-inline'`, `font-src fonts.gstatic.com`, `media-src everyayah.com`)
+- Cache headers: `no-cache, no-store` for `index.html`/`sw.js`, `no-cache` for JS/CSS, `max-age=86400` for images/fonts, `no-store` for API
+- `requireUserId(user_id, reply)` helper — typed guard used by review/delete/notes/snooze endpoints
+- `POST /api/items` calls `createUser()` first (idempotent — anonymous users may skip `/api/users`)
 
 ### `backend/src/database.ts`
-- Tables: `users`, `items` (with `content`, `notes` columns), `review_log`, `quran_ayahs` (FTS5)
+- Tables: `users`, `items` (composite PK `(user_id, item_id)`), `review_log`, `quran_ayahs` (FTS5)
+- **Schema migrations guarded by `PRAGMA user_version`:**
+  - v0→1 (M1): add content/notes columns
+  - v1→2 (M2): fix PK from `item_id TEXT PRIMARY KEY` → `PRIMARY KEY (user_id, item_id)`
 - Free tier: 5 items max — `count >= 5` throws `LIMIT_REACHED`
-- `addItem()` accepts `InitialDifficulty` params: `interval`, `ease_factor`, `repetitions`, `next_due_date`
-- FTS5 injection protection: wraps query in `"..."*` pattern, falls back to LIKE on 0 results
+- `addItem()` uses `INSERT OR IGNORE` + checks `changes === 0` → throws `DUPLICATE_ITEM`
+- All single-item functions take `(db, userId, itemId, ...)` — composite key throughout
+- `updateNotes` and `snoozeItem` throw `ITEM_NOT_FOUND` if `changes === 0`
+- FTS5 LIKE fallback escapes `%`, `_`, `\` with `ESCAPE '\\'`
 
 ### `frontend/index.html`
-Full SPA with the following views:
+Full SPA with views: `view-landing`, `view-dashboard`, `view-add`, `view-review`, `view-complete`, `view-queue`, `view-stats`, plus `profile-overlay` and `#bottom-nav`.
 
-| View ID | Purpose |
-|---------|---------|
-| `view-landing` | Marketing landing page — shown on first visit only |
-| `view-dashboard` | Due items list, streak chip, start-session button, goal bar, 7-day upcoming strip |
-| `view-add` | Starter packs, juz browser, search, range selector with difficulty pills |
-| `view-review` | **3-zone full-screen**: `.review-top-bar` / `.review-scroll-area` / `.review-bottom-dock` |
-| `view-complete` | Session complete screen with reviewed count + streak |
-| `view-queue` | All items grouped by due date |
-| `view-stats` | KPI grid, 14-day heatmap, quality breakdown, review log |
-| `profile-overlay` | Profile switcher, dark mode toggle, daily notification settings |
-
-Plus `<nav id="bottom-nav">` — 5-tab fixed bottom navigation: **Home · Queue · ＋ · Stats · Profile**
+**Review bottom dock structure (added this session):**
+```html
+<div class="review-bottom-dock">
+  <div class="rating-key-wrap">
+    <span class="dock-label">How did it go?</span>
+    <button id="rating-key-btn" aria-label="Rating key" aria-expanded="false">ⓘ</button>
+    <div id="rating-key-popover" class="rating-key-popover">
+      <div class="rk-row"><span class="rk-dot rk-forgot"></span><span class="rk-label">Forgot</span><span class="rk-days" id="rk-days-forgot">—</span></div>
+      <!-- hard / good / easy rows -->
+    </div>
+  </div>
+  <div class="quality-btns">...</div>
+  <button id="snooze-btn">...</button>
+</div>
+```
 
 ### `frontend/style.css`
-- **Light theme (default):** `--bg: #fdf8e1`, `--accent: #7a5900` (darkened for 6.1:1 contrast)
-- **Dark theme:** `[data-theme="dark"]` — `--accent: #c9a227`
-- `--btn-text` variable: `#fff` light / `#000` dark — all accent-background buttons use this
-- iOS safe area: `#app` padding-bottom = `calc(56px + env(safe-area-inset-bottom, 0) + 1rem)`
-- **Bottom nav:** `.bottom-nav` fixed at z-index 90, `.nav-tab--add` is elevated accent circle
-- **Review full-screen:** `#view-review.active { position: fixed; inset: 0; z-index: 100; display: flex !important }`
-- **Review zones:** `.review-top-bar` (fixed header), `.review-scroll-area` (flex:1, scrollable), `.review-bottom-dock` (pinned buttons)
-- Arabic text: `font-family: 'Amiri Quran'`, `.ar-line`, `.ar-word`, `.ar-faded`, `.ar-placeholder`
-- **Z-index stack:** bottom-nav = 90 · review overlay = 100 · profile overlay = 110
-- Service worker cache: `retainflow-v15`
+- SW cache comment: `retainflow-v21`
+- Light theme: `--bg: #fdf8e1`, `--accent: #7a5900`; dark: `--accent: #c9a227`
+- `cursor: pointer` on `.lp-cta-btn` (iOS click event fix inside scroll container)
+- Rating key CSS block: `.rating-key-wrap` (position:relative, flex), `.rating-key-btn` (ghost circle), `.rating-key-popover` (display:none → .open:display:block, position:absolute, z-index:101), `.rk-row/.rk-dot/.rk-label/.rk-days`
+- Z-index stack: bottom-nav=90, review overlay=100, rating-key popover=101, profile overlay=110
 
-### `frontend/app.js` (~1500 lines)
+### `frontend/app.js` (~1580 lines)
 
 | Feature | Detail |
 |---------|--------|
-| Auth | No login — anonymous UUID per device in `localStorage` |
-| Profiles | Multiple profiles via `rf_profiles` array |
-| Dark mode | Follows OS preference, user can override; toggle in profile panel |
-| SM-2 review | `submitReview()` → PUT /review, advances session queue |
-| Swipe gestures | Left = forgot, right = easy on `.review-card` |
-| Keyboard shortcuts | 1/2/3/4 for forgot/hard/good/easy during review |
-| Arabic display | `renderWordLevel()`: full / first-only / hidden modes with placeholder chips |
-| Audio | everyayah.com CDN, 4 reciters, sequential ayah playback |
-| Notifications | Web Notifications API with daily auto-reschedule |
-| Streak | localStorage tracking, shown in header chip |
-| Daily goal | Inline editor, progress bar |
-| Upcoming strip | Fetches /all, counts reviews per day for 7 days |
-| Difficulty calibration | 3 pills (rusty / fresh / solid) set initial SM-2 params on add |
-| Bottom nav | `NAV_HIDDEN_VIEWS = Set(['view-review', 'view-landing', 'view-complete'])` |
-| Tab state | `setActiveTab(action)` called at start of each view-loading function |
+| UUID | `generateUUID()` polyfill (iOS <15.4 compat) used in `getOrCreateUserId` + profile creation |
+| Profiles | `renderProfileList()` uses DOM methods — no innerHTML for user-supplied name |
+| SM-2 review | `submitReview(quality)` → PUT /review with `user_id`; null guard at top |
+| Rating key | `computeInterval(card, quality)` mirrors engine.ts; `previewIntervals(card)` uses `Object.fromEntries`; called in `startReview()` to populate ⓘ popover |
+| ⓘ popover | Toggle on `#rating-key-btn` click; dismiss on outside click; `aria-expanded` kept in sync; reset on card advance |
+| Notes | `apiFetch PUT /notes` includes `user_id: state.userId` |
+| Snooze | `apiFetch PUT /snooze` includes `user_id: state.userId` |
 
 ### `frontend/sw.js`
-- Cache name: `retainflow-v15`
-- Network-first for `/api/` calls, cache-first for shell assets
-- Cached shell: `/`, `/index.html`, `/style.css`, `/app.js`, `/manifest.json`
-
-### `frontend/manifest.json`
-- PWA descriptor with maskable icons, `orientation: "portrait"`, `categories: ["education"]`
-- Shortcuts: "Start Review" and "Add Ayat"
-
-### `frontend/robots.txt`
-- Allows all crawlers, blocks `/api/`, references sitemap URL
-
----
-
-## Lighthouse Scores
-
-| Category | Score |
-|----------|-------|
-| Performance | 88 |
-| Accessibility | 98 |
-| Best Practices | 96 |
-| SEO | 100 |
-
-Gzip active, no render-blocking resources, all colour contrast issues fixed.
+- Cache name: `retainflow-v21`
+- Standard `c.addAll(SHELL)` on install (server sends `no-cache` for JS/CSS so SW always gets fresh files)
+- Network-first for `/api/`, cache-first for shell assets
 
 ---
 
@@ -138,47 +119,28 @@ Gzip active, no render-blocking resources, all colour contrast issues fixed.
 cd ~/Retainflow/backend && npx vitest run
 ```
 
-| File | Tests |
-|------|-------|
-| `tests/engine.test.ts` | 13 — SM-2 algorithm |
-| `tests/database.test.ts` | 15 — DB layer + freemium limit |
-| `tests/server.test.ts` | 9 — API endpoints |
-
 ---
 
 ## Recent Git Log
 
 ```
-d967a71 fix(mobile): hide bottom nav on session-complete screen
-fd2324c feat(mobile): wire bottom nav JS and remove old topbar button listeners
-4844f30 fix(mobile): profile-overlay z-index, remove empty body rule, clean media query
-8e6e4d2 feat(mobile): bottom nav and full-screen review CSS
-10c40bc feat(mobile): restructure HTML for bottom nav and full-screen review
-5a7af8c feat: reframe dashboard messaging, welcome-back banner, SM-2 explainer, limit copy
-280ca48 feat: raise free tier limit from 3 to 5 items
-633afff feat: progressive text hiding, curated starter packs
-190d7bc feat: dark mode, session progress bar, session complete screen, haptics, swipe gestures
-93883bb feat: remove login screen, auto-generate anonymous user ID on first visit
+153ed74 security: CSP header, bodyLimit, innerHTML→DOM in profiles, LIKE wildcard escape, updateNotes/snoozeItem ownership check
+7fddc3e simplify: PRAGMA user_version migrations, requireUserId helper, previewIntervals fromEntries, remove redundant SW no-store
+d4378c4 fix: SW fetches assets with no-store on install; serve app.js+style.css with no-cache headers
+a4348bd fix: composite primary key (user_id, item_id) — multiple users can now track the same surah range
+6b0bd14 fix: auto-create user on addItem, remove debug code, bump SW cache to v20
+23aeb15 fix: add cursor:pointer to lp-cta-btn for iOS click events in scroll container
+15f2ae0 fix: polyfill crypto.randomUUID for iOS < 15.4, bump SW cache to v18
+239cdf6 feat: rename app to muraja'ah, bump SW cache to v17
+1eaea97 fix(review-key): close popover when advancing to next card
+e6b119c feat(review-key): compute and display per-card intervals in popover
 ```
 
 ---
 
-## Uncommitted Changes (working tree)
+## Uncommitted Changes
 
-These files have been modified but not committed — they are working and tested but were changed outside a formal commit cycle:
-
-- `backend/src/server.ts` — security headers, cache headers, compress plugin
-- `backend/src/database.ts` — InitialDifficulty interface, updated addItem signature
-- `backend/scripts/seed-quran.ts` — Quran seeding script
-- `frontend/manifest.json` — maskable icons, shortcuts, categories
-- `backend/package.json` / `package-lock.json` — @fastify/compress added
-
-To commit all of these:
-```bash
-cd ~/Retainflow
-git add backend/src/server.ts backend/src/database.ts backend/scripts/seed-quran.ts frontend/manifest.json backend/package.json backend/package-lock.json
-git commit -m "feat: security headers, gzip compression, manifest polish, initial difficulty params"
-```
+None — working tree is clean.
 
 ---
 
@@ -186,8 +148,21 @@ git commit -m "feat: security headers, gzip compression, manifest polish, initia
 
 | Item | Priority | Notes |
 |------|----------|-------|
-| Commit uncommitted changes above | High | See section above |
-| `og-image.png` (1200×630px) | Medium | Referenced in OG meta tags but file doesn't exist yet |
-| Production deployment | Medium | No Vercel/deployment config yet |
+| Dashboard item labels | Medium | Shows raw `surah-1-ayat-1-7` instead of "Al-Fatiha · 1–7". Queue view already has friendly names — same parsing logic needs applying to dashboard `.item-row` labels |
+| Rate limiting | Medium | No `@fastify/rate-limit` yet — DoS risk on search/add. Add `app.register(rateLimit, { max: 60, timeWindow: '1 minute' })` |
+| `og-image.png` (1200×630px) | Medium | Referenced in OG/Twitter meta tags but file missing |
+| Production deployment | Medium | No Vercel/deployment config. Domain `retainflow.app` still in meta tags — update to muraja'ah domain when ready |
+| Auth on GET user endpoints | Low | `/api/items/:userId` + `/api/stats/:userId` return data to any caller who knows a userId — acceptable for anonymous model but documented risk |
 | Upgrade flow | Low | `alert('Upgrade coming soon!')` placeholder in `app.js` |
-| `sitemap.xml` | Low | `robots.txt` references it but file doesn't exist |
+| `sitemap.xml` | Low | `robots.txt` references it but file missing |
+| Clean up committed junk | Low | `.superpowers/` brainstorm artifacts, `New Text Document.txt`, `server_output.txt`, `server_error.txt` are committed — add to `.gitignore` and remove |
+
+---
+
+## Key Architecture Decisions
+
+- **Anonymous UUIDs**: No server-side auth. `user_id` is a UUID in `localStorage`. It is both identity and credential.
+- **Composite PK**: `PRIMARY KEY (user_id, item_id)` so multiple profiles can independently track the same surah.
+- **PRAGMA user_version**: Migration gates are O(1) version checks, not `PRAGMA table_info` on every startup.
+- **SW + no-cache**: Service worker caches shell. Server sends `no-cache` for JS/CSS so SW always fetches fresh on install. Fonts/images keep `max-age=86400`.
+- **iOS**: `generateUUID()` polyfill for <15.4; `cursor: pointer` required on all interactive elements inside `-webkit-overflow-scrolling: touch` containers or iOS drops click events silently.
