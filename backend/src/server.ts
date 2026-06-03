@@ -78,18 +78,10 @@ export function buildApp(dbPath: string): FastifyInstance {
       addItem(db, user_id, item_id, content, initial ?? {});
       return reply.status(201).send({ ok: true, item_id });
     } catch (err: any) {
-      if (err.message === 'LIMIT_REACHED') {
-        return reply.status(403).send({
-          error: 'LIMIT_REACHED',
-          message: 'Free tier is limited to 5 parallel tracking decks.',
-        });
-      }
-      if (err.message.startsWith('USER_NOT_FOUND')) {
-        return reply.status(404).send({ error: 'USER_NOT_FOUND', message: 'User not found' });
-      }
-      if (err.message.includes('UNIQUE constraint failed')) {
-        return reply.status(409).send({ error: 'DUPLICATE_ITEM', message: 'Item ID already exists.' });
-      }
+      if (err.message === 'LIMIT_REACHED')
+        return reply.status(403).send({ error: 'LIMIT_REACHED', message: 'Free tier is limited to 5 parallel tracking decks.' });
+      if (err.message === 'DUPLICATE_ITEM')
+        return reply.status(409).send({ error: 'DUPLICATE_ITEM', message: 'This range is already in your queue.' });
       throw err;
     }
   });
@@ -109,47 +101,38 @@ export function buildApp(dbPath: string): FastifyInstance {
   });
 
   // PUT /api/items/:itemId/review
-  // Accepts optional user_id — when provided, verifies the item belongs to that user.
   app.put('/api/items/:itemId/review', async (req, reply) => {
     const { itemId } = req.params as { itemId: string };
     const { quality, user_id } = req.body as { quality?: string; user_id?: string };
     if (!quality || !VALID_QUALITIES.has(quality))
       return reply.status(400).send({ error: 'quality must be one of: forgot, hard, good, easy' });
+    if (!user_id)
+      return reply.status(400).send({ error: 'user_id required' });
 
-    const row = getItem(db, itemId);
+    const row = getItem(db, user_id, itemId);
     if (!row) return reply.status(404).send({ error: 'item not found' });
-
-    // Ownership check — if caller sends their user_id, enforce it
-    if (user_id && row.user_id !== user_id)
-      return reply.status(403).send({ error: 'FORBIDDEN', message: 'Item does not belong to this user' });
 
     const result = applyReview(
       { interval: row.interval, ease_factor: row.ease_factor, repetitions: row.repetitions },
       quality as ReviewQuality
     );
-    updateItem(db, itemId, result);
-    logReview(db, itemId, row.user_id, quality);
+    updateItem(db, user_id, itemId, result);
+    logReview(db, itemId, user_id, quality);
     return reply.send({ ok: true, ...result });
   });
 
   // DELETE /api/items/:itemId
-  // Accepts optional user_id in body — when provided, verifies ownership.
   app.delete('/api/items/:itemId', async (req, reply) => {
     const { itemId } = req.params as { itemId: string };
     const { user_id } = (req.body ?? {}) as { user_id?: string };
+    if (!user_id)
+      return reply.status(400).send({ error: 'user_id required' });
     try {
-      // Ownership check before deletion
-      if (user_id) {
-        const row = getItem(db, itemId);
-        if (row && row.user_id !== user_id)
-          return reply.status(403).send({ error: 'FORBIDDEN', message: 'Item does not belong to this user' });
-      }
-      deleteItem(db, itemId);
+      deleteItem(db, user_id, itemId);
       return reply.send({ ok: true });
     } catch (err: any) {
-      if (err.message.startsWith('ITEM_NOT_FOUND')) {
+      if (err.message.startsWith('ITEM_NOT_FOUND'))
         return reply.status(404).send({ error: 'ITEM_NOT_FOUND', message: 'Item not found' });
-      }
       throw err;
     }
   });
@@ -165,18 +148,22 @@ export function buildApp(dbPath: string): FastifyInstance {
   // PUT /api/items/:itemId/notes
   app.put('/api/items/:itemId/notes', async (req, reply) => {
     const { itemId } = req.params as { itemId: string };
-    const { notes = '' } = req.body as { notes?: string };
-    // Notes size guard
+    const { notes = '', user_id } = req.body as { notes?: string; user_id?: string };
+    if (!user_id)
+      return reply.status(400).send({ error: 'user_id required' });
     if (typeof notes === 'string' && notes.length > 10_000)
       return reply.status(400).send({ error: 'notes too long (max 10,000 chars)' });
-    updateNotes(db, itemId, notes);
+    updateNotes(db, user_id, itemId, notes);
     return reply.send({ ok: true });
   });
 
   // PUT /api/items/:itemId/snooze
   app.put('/api/items/:itemId/snooze', async (req, reply) => {
     const { itemId } = req.params as { itemId: string };
-    snoozeItem(db, itemId);
+    const { user_id } = req.body as { user_id?: string };
+    if (!user_id)
+      return reply.status(400).send({ error: 'user_id required' });
+    snoozeItem(db, user_id, itemId);
     return reply.send({ ok: true });
   });
 

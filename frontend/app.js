@@ -498,7 +498,7 @@ function toggleNotes(row, item) {
     clearTimeout(saveTimer);
     saveTimer = setTimeout(async () => {
       item.notes = ta.value;
-      await apiFetch('PUT', `/api/items/${item.item_id}/notes`, { notes: ta.value });
+      await apiFetch('PUT', `/api/items/${item.item_id}/notes`, { notes: ta.value, user_id: state.userId });
       const btn = row.querySelector('.notes-indicator');
       if (btn) { btn.textContent = ta.value ? '📝' : '＋note'; btn.title = ta.value ? 'Edit note' : 'Add note'; }
     }, 600);
@@ -964,7 +964,7 @@ document.getElementById('review-back-btn').addEventListener('click', () => {
 
 document.getElementById('snooze-btn').addEventListener('click', async () => {
   haptic(10);
-  await apiFetch('PUT', `/api/items/${state.reviewItem.item_id}/snooze`, {});
+  await apiFetch('PUT', `/api/items/${state.reviewItem.item_id}/snooze`, { user_id: state.userId });
   stopAudio();
   state.dueItems = state.dueItems.filter(i => i.item_id !== state.reviewItem.item_id);
   state.reviewItem = null;

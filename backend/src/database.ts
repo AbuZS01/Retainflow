@@ -39,14 +39,15 @@ export function initDb(path: string): Db {
     );
 
     CREATE TABLE IF NOT EXISTS items (
-      item_id       TEXT PRIMARY KEY,
       user_id       TEXT NOT NULL,
+      item_id       TEXT NOT NULL,
       content       TEXT NOT NULL DEFAULT '',
       notes         TEXT NOT NULL DEFAULT '',
       interval      INTEGER NOT NULL DEFAULT 1,
       ease_factor   REAL NOT NULL DEFAULT 2.5,
       repetitions   INTEGER NOT NULL DEFAULT 0,
       next_due_date INTEGER NOT NULL DEFAULT 0,
+      PRIMARY KEY (user_id, item_id),
       FOREIGN KEY (user_id) REFERENCES users(user_id)
     );
 
@@ -62,12 +63,39 @@ export function initDb(path: string): Db {
   `);
 
   // Migrations — safe to run on every startup
-  const itemCols = (db.prepare('PRAGMA table_info(items)').all() as { name: string }[]).map(c => c.name);
-  if (!itemCols.includes('content')) {
+  const itemCols = (db.prepare('PRAGMA table_info(items)').all() as { name: string; pk: number }[]);
+  const colNames = itemCols.map(c => c.name);
+
+  // M1: add content/notes columns (old schema)
+  if (!colNames.includes('content')) {
     db.exec("ALTER TABLE items ADD COLUMN content TEXT NOT NULL DEFAULT ''");
   }
-  if (!itemCols.includes('notes')) {
+  if (!colNames.includes('notes')) {
     db.exec("ALTER TABLE items ADD COLUMN notes TEXT NOT NULL DEFAULT ''");
+  }
+
+  // M2: fix primary key — old schema had item_id as sole PK; new schema is (user_id, item_id)
+  const userIdPk = itemCols.find(c => c.name === 'user_id')?.pk ?? 0;
+  if (userIdPk === 0) {
+    db.transaction(() => {
+      db.exec(`ALTER TABLE items RENAME TO items_old`);
+      db.exec(`
+        CREATE TABLE items (
+          user_id       TEXT NOT NULL,
+          item_id       TEXT NOT NULL,
+          content       TEXT NOT NULL DEFAULT '',
+          notes         TEXT NOT NULL DEFAULT '',
+          interval      INTEGER NOT NULL DEFAULT 1,
+          ease_factor   REAL NOT NULL DEFAULT 2.5,
+          repetitions   INTEGER NOT NULL DEFAULT 0,
+          next_due_date INTEGER NOT NULL DEFAULT 0,
+          PRIMARY KEY (user_id, item_id),
+          FOREIGN KEY (user_id) REFERENCES users(user_id)
+        )
+      `);
+      db.exec(`INSERT INTO items SELECT user_id, item_id, content, notes, interval, ease_factor, repetitions, next_due_date FROM items_old`);
+      db.exec(`DROP TABLE items_old`);
+    })();
   }
 
   db.exec(`CREATE INDEX IF NOT EXISTS idx_log_user ON review_log(user_id, reviewed_at);`);
@@ -118,12 +146,13 @@ export function addItem(
   const repetitions  = initial.repetitions  ?? 0;
   const next_due_date = initial.next_due_date ?? Date.now();
 
-  db
+  const { changes } = db
     .prepare(
-      `INSERT INTO items (item_id, user_id, content, interval, ease_factor, repetitions, next_due_date)
+      `INSERT OR IGNORE INTO items (user_id, item_id, content, interval, ease_factor, repetitions, next_due_date)
        VALUES (?, ?, ?, ?, ?, ?, ?)`
     )
-    .run(itemId, userId, content, interval, ease_factor, repetitions, next_due_date);
+    .run(userId, itemId, content, interval, ease_factor, repetitions, next_due_date);
+  if (changes === 0) throw new Error('DUPLICATE_ITEM');
 }
 
 export function getDueItems(db: Db, userId: string): ItemRow[] {
@@ -134,37 +163,37 @@ export function getDueItems(db: Db, userId: string): ItemRow[] {
     .all(userId, Date.now()) as ItemRow[];
 }
 
-export function getItem(db: Db, itemId: string): ItemRow | null {
+export function getItem(db: Db, userId: string, itemId: string): ItemRow | null {
   return (
-    (db.prepare('SELECT * FROM items WHERE item_id = ?').get(itemId) as ItemRow) ?? null
+    (db.prepare('SELECT * FROM items WHERE user_id = ? AND item_id = ?').get(userId, itemId) as ItemRow) ?? null
   );
 }
 
-export function updateItem(db: Db, itemId: string, result: ReviewResult): void {
+export function updateItem(db: Db, userId: string, itemId: string, result: ReviewResult): void {
   const { changes } = db
     .prepare(
       `UPDATE items
        SET interval = ?, ease_factor = ?, repetitions = ?, next_due_date = ?
-       WHERE item_id = ?`
+       WHERE user_id = ? AND item_id = ?`
     )
-    .run(result.interval, result.ease_factor, result.repetitions, result.next_due_date, itemId);
+    .run(result.interval, result.ease_factor, result.repetitions, result.next_due_date, userId, itemId);
   if (changes === 0) throw new Error(`ITEM_NOT_FOUND: ${itemId}`);
 }
 
-export function deleteItem(db: Db, itemId: string): void {
-  const { changes } = db.prepare('DELETE FROM items WHERE item_id = ?').run(itemId);
+export function deleteItem(db: Db, userId: string, itemId: string): void {
+  const { changes } = db.prepare('DELETE FROM items WHERE user_id = ? AND item_id = ?').run(userId, itemId);
   if (changes === 0) throw new Error(`ITEM_NOT_FOUND: ${itemId}`);
 }
 
 // ── Notes ───────────────────────────────────────────────────────────────────
-export function updateNotes(db: Db, itemId: string, notes: string): void {
-  db.prepare('UPDATE items SET notes = ? WHERE item_id = ?').run(notes, itemId);
+export function updateNotes(db: Db, userId: string, itemId: string, notes: string): void {
+  db.prepare('UPDATE items SET notes = ? WHERE user_id = ? AND item_id = ?').run(notes, userId, itemId);
 }
 
 // ── Snooze ──────────────────────────────────────────────────────────────────
-export function snoozeItem(db: Db, itemId: string): void {
+export function snoozeItem(db: Db, userId: string, itemId: string): void {
   const tomorrow = Date.now() + 86_400_000;
-  db.prepare('UPDATE items SET next_due_date = ? WHERE item_id = ?').run(tomorrow, itemId);
+  db.prepare('UPDATE items SET next_due_date = ? WHERE user_id = ? AND item_id = ?').run(tomorrow, userId, itemId);
 }
 
 // ── All items (for stats) ───────────────────────────────────────────────────

@@ -91,13 +91,13 @@ describe('updateItem', () => {
     createUser(db, 'user-upd');
     addItem(db, 'user-upd', 'card-1');
     const futureDate = Date.now() + 15 * 86_400_000;
-    updateItem(db, 'card-1', {
+    updateItem(db, 'user-upd', 'card-1', {
       interval: 15,
       ease_factor: 2.6,
       repetitions: 3,
       next_due_date: futureDate,
     });
-    const row = db.prepare("SELECT * FROM items WHERE item_id = 'card-1'").get() as any;
+    const row = db.prepare("SELECT * FROM items WHERE user_id = 'user-upd' AND item_id = 'card-1'").get() as any;
     expect(row.interval).toBe(15);
     expect(row.ease_factor).toBeCloseTo(2.6, 4);
     expect(row.repetitions).toBe(3);
@@ -106,7 +106,7 @@ describe('updateItem', () => {
 
   it('throws ITEM_NOT_FOUND when item does not exist', () => {
     expect(() =>
-      updateItem(db, 'nonexistent', { interval: 1, ease_factor: 2.5, repetitions: 0, next_due_date: 0 })
+      updateItem(db, 'no-user', 'nonexistent', { interval: 1, ease_factor: 2.5, repetitions: 0, next_due_date: 0 })
     ).toThrow('ITEM_NOT_FOUND');
   });
 });
@@ -115,13 +115,13 @@ describe('deleteItem', () => {
   it('removes the item row', () => {
     createUser(db, 'user-del');
     addItem(db, 'user-del', 'to-delete');
-    deleteItem(db, 'to-delete');
-    const row = db.prepare("SELECT * FROM items WHERE item_id = 'to-delete'").get();
+    deleteItem(db, 'user-del', 'to-delete');
+    const row = db.prepare("SELECT * FROM items WHERE user_id = 'user-del' AND item_id = 'to-delete'").get();
     expect(row).toBeUndefined();
   });
 
   it('throws ITEM_NOT_FOUND when item does not exist', () => {
-    expect(() => deleteItem(db, 'ghost-item')).toThrow('ITEM_NOT_FOUND');
+    expect(() => deleteItem(db, 'user-del', 'ghost-item')).toThrow('ITEM_NOT_FOUND');
   });
 });
 
@@ -135,7 +135,7 @@ describe('addItem — content', () => {
   it('stores and retrieves content', () => {
     createUser(db, 'user-content');
     addItem(db, 'user-content', 'verse-1', 'بِسْمِ اللَّهِ الرَّحْمَٰنِ الرَّحِيمِ');
-    const item = getItem(db, 'verse-1');
+    const item = getItem(db, 'user-content', 'verse-1');
     expect(item).not.toBeNull();
     expect(item!.content).toBe('بِسْمِ اللَّهِ الرَّحْمَٰنِ الرَّحِيمِ');
   });
@@ -143,7 +143,7 @@ describe('addItem — content', () => {
   it('defaults to empty string when content not provided', () => {
     createUser(db, 'user-nocontent');
     addItem(db, 'user-nocontent', 'item-no-content');
-    const item = getItem(db, 'item-no-content');
+    const item = getItem(db, 'user-nocontent', 'item-no-content');
     expect(item!.content).toBe('');
   });
 });
@@ -152,13 +152,13 @@ describe('getItem', () => {
   it('returns item by id', () => {
     createUser(db, 'user-getitem');
     addItem(db, 'user-getitem', 'my-item');
-    const item = getItem(db, 'my-item');
+    const item = getItem(db, 'user-getitem', 'my-item');
     expect(item).not.toBeNull();
     expect(item!.item_id).toBe('my-item');
     expect(item!.user_id).toBe('user-getitem');
   });
 
   it('returns null for unknown item', () => {
-    expect(getItem(db, 'ghost')).toBeNull();
+    expect(getItem(db, 'user-getitem', 'ghost')).toBeNull();
   });
 });

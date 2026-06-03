@@ -115,7 +115,7 @@ describe('PUT /api/items/:itemId/review', () => {
     const res = await app.inject({
       method: 'PUT',
       url: '/api/items/card-review/review',
-      payload: { quality: 'good' },
+      payload: { quality: 'good', user_id: 'test-user-4' },
     });
     expect(res.statusCode).toBe(200);
     const body = JSON.parse(res.body);
@@ -145,7 +145,7 @@ describe('DELETE /api/items/:itemId', () => {
       url: '/api/items',
       payload: { user_id: 'test-user-5', item_id: 'to-del' },
     });
-    const res = await app.inject({ method: 'DELETE', url: '/api/items/to-del' });
+    const res = await app.inject({ method: 'DELETE', url: '/api/items/to-del', payload: { user_id: 'test-user-5' } });
     expect(res.statusCode).toBe(200);
     expect(JSON.parse(res.body)).toEqual({ ok: true });
   });
