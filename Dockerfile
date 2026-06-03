@@ -2,7 +2,8 @@ FROM node:20-alpine AS builder
 WORKDIR /app
 RUN apk add --no-cache python3 make g++
 COPY backend/package*.json ./backend/
-RUN cd backend && npm ci
+RUN cd backend && npm ci --ignore-scripts
+RUN cd backend && npm rebuild better-sqlite3 --build-from-source
 COPY backend/ ./backend/
 RUN cd backend && npm run build
 
