@@ -1,5 +1,19 @@
 const API = '';  // Same-origin; server serves frontend
 
+// ── Debug: show JS errors visually (remove after diagnosis) ────────────────
+function showDebugError(msg) {
+  const el = document.createElement('div');
+  el.style.cssText = 'position:fixed;top:0;left:0;right:0;background:red;color:#fff;padding:1rem;z-index:9999;font-size:14px;word-break:break-all;white-space:pre-wrap';
+  el.textContent = msg;
+  document.body?.appendChild(el);
+}
+window.addEventListener('error', (e) => {
+  showDebugError(`ERROR: ${e.message}\n${e.filename?.split('/').pop()}:${e.lineno}`);
+});
+window.addEventListener('unhandledrejection', (e) => {
+  showDebugError(`PROMISE ERROR: ${e.reason?.message || e.reason || 'unknown'}\n${e.reason?.stack || ''}`);
+});
+
 // Allowlist used when rendering server data into the DOM (XSS guard)
 const VALID_LOG_QUALITIES = new Set(['forgot', 'hard', 'good', 'easy']);
 
@@ -1542,8 +1556,11 @@ function startFromLanding() {
   }, 320);
 }
 
-document.getElementById('landing-cta-btn').addEventListener('click', startFromLanding);
-document.getElementById('landing-cta-btn-2').addEventListener('click', startFromLanding);
+['landing-cta-btn', 'landing-cta-btn-2'].forEach(id => {
+  const btn = document.getElementById(id);
+  btn.addEventListener('click',     () => { btn.textContent = 'click fired'; startFromLanding(); });
+  btn.addEventListener('touchend',  () => { btn.textContent = 'touch fired'; }, { passive: true });
+});
 
 // ── Init ───────────────────────────────────────────────────────────────────
 initTheme();
