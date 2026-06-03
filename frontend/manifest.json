@@ -1,6 +1,6 @@
 {
-  "name": "RetainFlow — Quran Revision & Memorisation",
-  "short_name": "RetainFlow",
+  "name": "muraja'ah — Quran Revision & Memorisation",
+  "short_name": "muraja'ah",
   "description": "Spaced repetition for Quran memorisation. Track ayat, review daily, and build a lasting connection with the Book of Allah.",
   "start_url": "/?source=pwa",
   "display": "standalone",

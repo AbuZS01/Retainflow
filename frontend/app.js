@@ -1458,7 +1458,7 @@ function scheduleNotification() {
   const s = getNotifSettings();
   if (!s.enabled || !('Notification' in window) || Notification.permission !== 'granted') return;
   notifTimer = setTimeout(() => {
-    new Notification('RetainFlow', {
+    new Notification("muraja'ah", {
       body: `Time for your daily Quran revision — your due ayahs are waiting.`,
       icon: '/icon-192.png',
     });
