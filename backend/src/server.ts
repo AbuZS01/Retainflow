@@ -3,6 +3,7 @@ import type { FastifyInstance } from 'fastify';
 import fastifyStatic from '@fastify/static';
 import fastifyCors from '@fastify/cors';
 import fastifyCompress from '@fastify/compress';
+import rateLimit from '@fastify/rate-limit';
 import { fileURLToPath } from 'url';
 import path from 'path';
 import { initDb, createUser, addItem, getDueItems, getAllItems, getItem, updateItem, deleteItem, searchAyahs, getAyahRange, logReview, getReviewLog, getStats, updateNotes, snoozeItem } from './database.js';
@@ -30,6 +31,13 @@ export function buildApp(dbPath: string): FastifyInstance {
   // Gzip/Brotli compression for all text responses
   app.register(fastifyCompress, { global: true });
 
+  // Rate limiting: 60 req/min globally
+  app.register(rateLimit, {
+    global: true,
+    max: 60,
+    timeWindow: '1 minute',
+  });
+
   // CORS: locked to explicit origins, not origin: true
   app.register(fastifyCors, {
     origin: (origin, cb) => {
@@ -50,7 +58,9 @@ export function buildApp(dbPath: string): FastifyInstance {
   });
 
   // POST /api/items
-  app.post('/api/items', async (req, reply) => {
+  app.post('/api/items', {
+    config: { rateLimit: { max: 10, timeWindow: '1 minute' } },
+  }, async (req, reply) => {
     const { user_id, item_id, content = '', initial } = req.body as {
       user_id?: string;
       item_id?: string;
@@ -172,7 +182,9 @@ export function buildApp(dbPath: string): FastifyInstance {
   });
 
   // GET /api/quran/search?q=...
-  app.get('/api/quran/search', async (req, reply) => {
+  app.get('/api/quran/search', {
+    config: { rateLimit: { max: 10, timeWindow: '1 minute' } },
+  }, async (req, reply) => {
     const { q } = req.query as { q?: string };
     if (!q || q.trim().length < 2)
       return reply.status(400).send({ error: 'query must be at least 2 characters' });
