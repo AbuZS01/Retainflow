@@ -1,13 +1,13 @@
-FROM node:20-alpine AS builder
+FROM --platform=linux/amd64 node:20-slim AS builder
 WORKDIR /app
-RUN apk add --no-cache python3 make g++
+RUN apt-get update && apt-get install -y python3 make g++ && rm -rf /var/lib/apt/lists/*
 COPY backend/package*.json ./backend/
 RUN cd backend && npm ci --ignore-scripts
 RUN cd backend && npm rebuild better-sqlite3 --build-from-source
 COPY backend/ ./backend/
 RUN cd backend && npm run build
 
-FROM node:20-alpine
+FROM --platform=linux/amd64 node:20-slim
 WORKDIR /app
 COPY --from=builder /app/backend/dist ./backend/dist
 COPY --from=builder /app/backend/node_modules ./backend/node_modules
