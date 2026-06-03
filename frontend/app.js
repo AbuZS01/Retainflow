@@ -15,11 +15,20 @@ const STARTER_PACKS = [
   { label: 'Ya-Sin',        surah:  36, from:  1, to:  83, sub: '83 ayahs · Ya-Sin' },
 ];
 
+// ── Compat ─────────────────────────────────────────────────────────────────
+// crypto.randomUUID() only available iOS 15.4+; fall back to getRandomValues
+function generateUUID() {
+  if (typeof crypto.randomUUID === 'function') return crypto.randomUUID();
+  return '10000000-1000-4000-8000-100000000000'.replace(/[018]/g, c =>
+    (+c ^ crypto.getRandomValues(new Uint8Array(1))[0] & 15 >> +c / 4).toString(16)
+  );
+}
+
 // ── State ──────────────────────────────────────────────────────────────────
 function getOrCreateUserId() {
   let id = localStorage.getItem('rf_user_id');
   if (!id) {
-    id = crypto.randomUUID();
+    id = generateUUID();
     localStorage.setItem('rf_user_id', id);
   }
   return id;
@@ -174,7 +183,7 @@ document.getElementById('profile-add-btn').addEventListener('click', () => {
 document.getElementById('profile-save-btn').addEventListener('click', () => {
   const name = document.getElementById('profile-name-input').value.trim();
   if (!name) return;
-  const newUserId = crypto.randomUUID();
+  const newUserId = generateUUID();
   const profiles = getProfiles() ?? [];
   profiles.push({ name, userId: newUserId });
   localStorage.setItem('rf_profiles', JSON.stringify(profiles));
