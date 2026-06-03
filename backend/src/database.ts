@@ -186,13 +186,15 @@ export function deleteItem(db: Db, userId: string, itemId: string): void {
 
 // ── Notes ───────────────────────────────────────────────────────────────────
 export function updateNotes(db: Db, userId: string, itemId: string, notes: string): void {
-  db.prepare('UPDATE items SET notes = ? WHERE user_id = ? AND item_id = ?').run(notes, userId, itemId);
+  const { changes } = db.prepare('UPDATE items SET notes = ? WHERE user_id = ? AND item_id = ?').run(notes, userId, itemId);
+  if (changes === 0) throw new Error(`ITEM_NOT_FOUND: ${itemId}`);
 }
 
 // ── Snooze ──────────────────────────────────────────────────────────────────
 export function snoozeItem(db: Db, userId: string, itemId: string): void {
   const tomorrow = Date.now() + 86_400_000;
-  db.prepare('UPDATE items SET next_due_date = ? WHERE user_id = ? AND item_id = ?').run(tomorrow, userId, itemId);
+  const { changes } = db.prepare('UPDATE items SET next_due_date = ? WHERE user_id = ? AND item_id = ?').run(tomorrow, userId, itemId);
+  if (changes === 0) throw new Error(`ITEM_NOT_FOUND: ${itemId}`);
 }
 
 // ── All items (for stats) ───────────────────────────────────────────────────
@@ -256,11 +258,14 @@ export function searchAyahs(db: Db, query: string, limit = 20): AyahRow[] {
     if (rows.length > 0) return rows;
     throw new Error('no fts results');
   } catch {
+    const likeQ = '%' + query.replace(/[%_\\]/g, '\\$&') + '%';
     return db.prepare(
       `SELECT * FROM quran_ayahs
-       WHERE arabic LIKE ? OR english LIKE ? OR surah_name LIKE ?
+       WHERE arabic LIKE ? ESCAPE '\\'
+          OR english LIKE ? ESCAPE '\\'
+          OR surah_name LIKE ? ESCAPE '\\'
        LIMIT ?`
-    ).all(`%${query}%`, `%${query}%`, `%${query}%`, limit) as AyahRow[];
+    ).all(likeQ, likeQ, likeQ, limit) as AyahRow[];
   }
 }
 

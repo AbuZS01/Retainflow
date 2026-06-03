@@ -25,7 +25,7 @@ function requireUserId(user_id: string | undefined, reply: FastifyReply): user_i
 
 export function buildApp(dbPath: string): FastifyInstance {
   const db = initDb(dbPath);
-  const app = Fastify({ logger: false });
+  const app = Fastify({ logger: false, bodyLimit: 600_000 });
 
   // Gzip/Brotli compression for all text responses
   app.register(fastifyCompress, { global: true });
@@ -206,6 +206,16 @@ export function buildApp(dbPath: string): FastifyInstance {
     if (url === '/' || url.endsWith('index.html')) {
       // HTML entry point — never cache so users always get fresh shell
       reply.header('Cache-Control', 'no-cache, no-store, must-revalidate');
+      reply.header('Content-Security-Policy',
+        "default-src 'self'; " +
+        "script-src 'self' 'unsafe-inline'; " +
+        "style-src 'self' https://fonts.googleapis.com 'unsafe-inline'; " +
+        "font-src 'self' https://fonts.gstatic.com; " +
+        "media-src https://everyayah.com; " +
+        "img-src 'self' data:; " +
+        "connect-src 'self'; " +
+        "frame-ancestors 'none';"
+      );
     } else if (url.endsWith('sw.js')) {
       // Service worker — browser must not cache it (only the SW cache handles assets)
       reply.header('Cache-Control', 'no-cache, no-store, must-revalidate');

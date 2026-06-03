@@ -120,12 +120,27 @@ function renderProfileList() {
   profiles.forEach((p, idx) => {
     const row = document.createElement('div');
     row.className = 'profile-item' + (p.userId === state.userId ? ' active' : '');
-    row.innerHTML = `
-      <span class="profile-item-name">${p.name}</span>
-      <div style="display:flex;align-items:center;gap:.4rem">
-        ${p.userId === state.userId ? '<span class="profile-item-check">✓</span>' : ''}
-        ${profiles.length > 1 ? `<button class="profile-item-delete" data-idx="${idx}" aria-label="Delete profile">✕</button>` : ''}
-      </div>`;
+    const nameSpan = document.createElement('span');
+    nameSpan.className = 'profile-item-name';
+    nameSpan.textContent = p.name;
+    const actions = document.createElement('div');
+    actions.style.cssText = 'display:flex;align-items:center;gap:.4rem';
+    if (p.userId === state.userId) {
+      const check = document.createElement('span');
+      check.className = 'profile-item-check';
+      check.textContent = '✓';
+      actions.appendChild(check);
+    }
+    if (profiles.length > 1) {
+      const del = document.createElement('button');
+      del.className = 'profile-item-delete';
+      del.dataset.idx = String(idx);
+      del.setAttribute('aria-label', 'Delete profile');
+      del.textContent = '✕';
+      actions.appendChild(del);
+    }
+    row.appendChild(nameSpan);
+    row.appendChild(actions);
     // Switch on click (not on delete btn)
     row.addEventListener('click', (e) => {
       if (e.target.closest('.profile-item-delete')) return;
