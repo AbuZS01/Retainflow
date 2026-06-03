@@ -1,9 +1,13 @@
-const CACHE = 'retainflow-v20';
+const CACHE = 'retainflow-v21';
 const SHELL = ['/', '/index.html', '/style.css', '/app.js', '/manifest.json'];
 
 self.addEventListener('install', (e) => {
   e.waitUntil(
-    caches.open(CACHE).then((c) => c.addAll(SHELL)).then(() => self.skipWaiting())
+    caches.open(CACHE).then((c) =>
+      Promise.all(SHELL.map(url =>
+        fetch(url, { cache: 'no-store' }).then(r => c.put(url, r))
+      ))
+    ).then(() => self.skipWaiting())
   );
 });
 

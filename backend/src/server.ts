@@ -208,8 +208,11 @@ export function buildApp(dbPath: string): FastifyInstance {
     } else if (url.startsWith('/api/')) {
       // API responses — no caching
       reply.header('Cache-Control', 'no-store');
-    } else if (/\.(js|css|png|jpg|jpeg|svg|ico|webp|woff2?)$/.test(url)) {
-      // Static assets — cache for 1 day, allow stale for 1 hour while revalidating
+    } else if (/\.(js|css)$/.test(url)) {
+      // App shell JS/CSS — always revalidate so SW picks up changes immediately
+      reply.header('Cache-Control', 'no-cache');
+    } else if (/\.(png|jpg|jpeg|svg|ico|webp|woff2?)$/.test(url)) {
+      // Static media/fonts — long cache, these rarely change
       reply.header('Cache-Control', 'public, max-age=86400, stale-while-revalidate=3600');
     }
   });
