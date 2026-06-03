@@ -2,7 +2,7 @@ FROM --platform=linux/amd64 node:20-slim AS builder
 WORKDIR /app
 RUN apt-get update && apt-get install -y python3 make g++ && rm -rf /var/lib/apt/lists/*
 COPY backend/package*.json ./backend/
-RUN cd backend && npm_config_build_from_source=true npm ci
+RUN cd backend && npm ci
 COPY backend/ ./backend/
 RUN cd backend && npm run build
 
