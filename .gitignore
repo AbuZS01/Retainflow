@@ -3,3 +3,7 @@ dist/
 *.db
 *.db-shm
 *.db-wal
+.superpowers/
+New Text Document.txt
+server_output.txt
+server_error.txt
