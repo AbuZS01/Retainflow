@@ -681,7 +681,7 @@ h2 { font-size: 1.35rem; margin-bottom: .35rem; }
   padding: 0;
   flex-shrink: 0;
 }
-.nav-tab--add .nav-icon { font-size: 1.5rem; }
+.nav-tab--add .nav-icon { font-size: 1.8rem; font-weight: 300; line-height: 1; }
 .nav-tab--add::after { display: none; }
 .nav-tab--add:hover { opacity: .85; }
 
