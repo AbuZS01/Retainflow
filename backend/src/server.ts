@@ -54,6 +54,9 @@ export function buildApp(dbPath: string): FastifyInstance {
     if (user_id.length > 200 || item_id.length > 200)
       return reply.status(400).send({ error: 'user_id and item_id must be 200 chars or less' });
 
+    // Ensure user exists — anonymous users may not have hit /api/users first
+    createUser(db, user_id);
+
     // Content size guard — prevents disk-filling attacks
     if (typeof content === 'string' && content.length > 500_000)
       return reply.status(400).send({ error: 'content too large (max 500 KB)' });
