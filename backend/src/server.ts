@@ -15,6 +15,14 @@ const ALLOWED_ORIGINS = process.env.ALLOWED_ORIGINS
   ? process.env.ALLOWED_ORIGINS.split(',').map(o => o.trim())
   : ['http://localhost:3000', 'http://127.0.0.1:3000'];
 
+import type { FastifyReply } from 'fastify';
+
+/** Returns false and sends 400 when user_id is missing — use as an early-return guard. */
+function requireUserId(user_id: string | undefined, reply: FastifyReply): user_id is string {
+  if (!user_id) { reply.status(400).send({ error: 'user_id required' }); return false; }
+  return true;
+}
+
 export function buildApp(dbPath: string): FastifyInstance {
   const db = initDb(dbPath);
   const app = Fastify({ logger: false });
@@ -106,8 +114,7 @@ export function buildApp(dbPath: string): FastifyInstance {
     const { quality, user_id } = req.body as { quality?: string; user_id?: string };
     if (!quality || !VALID_QUALITIES.has(quality))
       return reply.status(400).send({ error: 'quality must be one of: forgot, hard, good, easy' });
-    if (!user_id)
-      return reply.status(400).send({ error: 'user_id required' });
+    if (!requireUserId(user_id, reply)) return;
 
     const row = getItem(db, user_id, itemId);
     if (!row) return reply.status(404).send({ error: 'item not found' });
@@ -125,8 +132,7 @@ export function buildApp(dbPath: string): FastifyInstance {
   app.delete('/api/items/:itemId', async (req, reply) => {
     const { itemId } = req.params as { itemId: string };
     const { user_id } = (req.body ?? {}) as { user_id?: string };
-    if (!user_id)
-      return reply.status(400).send({ error: 'user_id required' });
+    if (!requireUserId(user_id, reply)) return;
     try {
       deleteItem(db, user_id, itemId);
       return reply.send({ ok: true });
@@ -149,8 +155,7 @@ export function buildApp(dbPath: string): FastifyInstance {
   app.put('/api/items/:itemId/notes', async (req, reply) => {
     const { itemId } = req.params as { itemId: string };
     const { notes = '', user_id } = req.body as { notes?: string; user_id?: string };
-    if (!user_id)
-      return reply.status(400).send({ error: 'user_id required' });
+    if (!requireUserId(user_id, reply)) return;
     if (typeof notes === 'string' && notes.length > 10_000)
       return reply.status(400).send({ error: 'notes too long (max 10,000 chars)' });
     updateNotes(db, user_id, itemId, notes);
@@ -161,8 +166,7 @@ export function buildApp(dbPath: string): FastifyInstance {
   app.put('/api/items/:itemId/snooze', async (req, reply) => {
     const { itemId } = req.params as { itemId: string };
     const { user_id } = req.body as { user_id?: string };
-    if (!user_id)
-      return reply.status(400).send({ error: 'user_id required' });
+    if (!requireUserId(user_id, reply)) return;
     snoozeItem(db, user_id, itemId);
     return reply.send({ ok: true });
   });

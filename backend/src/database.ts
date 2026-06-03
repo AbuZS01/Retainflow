@@ -62,21 +62,19 @@ export function initDb(path: string): Db {
     CREATE INDEX IF NOT EXISTS idx_items_user ON items(user_id);
   `);
 
-  // Migrations — safe to run on every startup
-  const itemCols = (db.prepare('PRAGMA table_info(items)').all() as { name: string; pk: number }[]);
-  const colNames = itemCols.map(c => c.name);
+  // Schema migrations — guarded by PRAGMA user_version so each runs exactly once
+  const schemaVersion = (db.pragma('user_version', { simple: true }) as number);
 
-  // M1: add content/notes columns (old schema)
-  if (!colNames.includes('content')) {
-    db.exec("ALTER TABLE items ADD COLUMN content TEXT NOT NULL DEFAULT ''");
-  }
-  if (!colNames.includes('notes')) {
-    db.exec("ALTER TABLE items ADD COLUMN notes TEXT NOT NULL DEFAULT ''");
+  if (schemaVersion < 1) {
+    // M1: add content/notes columns (old schema lacked them)
+    const cols = (db.prepare('PRAGMA table_info(items)').all() as { name: string }[]).map(c => c.name);
+    if (!cols.includes('content')) db.exec("ALTER TABLE items ADD COLUMN content TEXT NOT NULL DEFAULT ''");
+    if (!cols.includes('notes'))   db.exec("ALTER TABLE items ADD COLUMN notes TEXT NOT NULL DEFAULT ''");
+    db.pragma('user_version = 1');
   }
 
-  // M2: fix primary key — old schema had item_id as sole PK; new schema is (user_id, item_id)
-  const userIdPk = itemCols.find(c => c.name === 'user_id')?.pk ?? 0;
-  if (userIdPk === 0) {
+  if (schemaVersion < 2) {
+    // M2: fix primary key — old schema had item_id as sole PK; new schema is (user_id, item_id)
     db.transaction(() => {
       db.exec(`ALTER TABLE items RENAME TO items_old`);
       db.exec(`
@@ -95,6 +93,7 @@ export function initDb(path: string): Db {
       `);
       db.exec(`INSERT INTO items SELECT user_id, item_id, content, notes, interval, ease_factor, repetitions, next_due_date FROM items_old`);
       db.exec(`DROP TABLE items_old`);
+      db.pragma('user_version = 2');
     })();
   }
 

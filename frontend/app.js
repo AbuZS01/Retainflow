@@ -931,12 +931,9 @@ function computeInterval(card, quality) {
 }
 
 function previewIntervals(card) {
-  return {
-    forgot: computeInterval(card, 'forgot'),
-    hard:   computeInterval(card, 'hard'),
-    good:   computeInterval(card, 'good'),
-    easy:   computeInterval(card, 'easy'),
-  };
+  return Object.fromEntries(
+    ['forgot', 'hard', 'good', 'easy'].map(q => [q, computeInterval(card, q)])
+  );
 }
 
 async function submitReview(quality) {
