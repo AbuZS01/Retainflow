@@ -1,5 +1,6 @@
 FROM node:20-alpine AS builder
 WORKDIR /app
+RUN apk add --no-cache python3 make g++
 COPY backend/package*.json ./backend/
 RUN cd backend && npm ci
 COPY backend/ ./backend/

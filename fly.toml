@@ -1,11 +1,14 @@
 app = "muraja-ah"
 primary_region = "lhr"
 
-[build]
-
 [env]
   PORT = "3000"
   HOST = "0.0.0.0"
+
+[machines]
+  auto_stop_machines = true
+  auto_start_machines = true
+  min_machines_running = 0
 
 [mounts]
   source = "muraja_data"
