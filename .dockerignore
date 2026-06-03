@@ -1,0 +1,10 @@
+node_modules
+backend/dist
+*.db
+*.db-shm
+*.db-wal
+.superpowers
+server_output.txt
+server_error.txt
+New Text Document.txt
+docs
