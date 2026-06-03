@@ -458,7 +458,7 @@ function renderDueList() {
 
     const idSpan = document.createElement('span');
     idSpan.className = 'item-id';
-    idSpan.textContent = item.item_id;
+    idSpan.textContent = prettyItemId(item.item_id);
 
     const meta = document.createElement('span');
     meta.className = 'item-meta';
@@ -476,7 +476,7 @@ function renderDueList() {
     const deleteBtn = document.createElement('button');
     deleteBtn.className = 'delete-btn';
     deleteBtn.title = 'Remove';
-    deleteBtn.setAttribute('aria-label', `Remove ${item.item_id}`);
+    deleteBtn.setAttribute('aria-label', `Remove ${prettyItemId(item.item_id)}`);
     deleteBtn.textContent = '✕';
     deleteBtn.addEventListener('click', () => removeItem(item.item_id));
 
@@ -1072,10 +1072,12 @@ function relativeDay(ts) {
 }
 
 function prettyItemId(id) {
-  // surah-67-ayat-1-30 → Surah 67 · 1–30
   const m = id.match(/^surah-(\d+)-ayat-(\d+)-(\d+)$/);
-  if (m) return `Surah ${m[1]} · ${m[2]}–${m[3]}`;
-  return id;
+  if (!m) return id;
+  const surahNum = parseInt(m[1], 10);
+  const entry = SURAHS.find(s => s[0] === surahNum);
+  const name = entry ? entry[1] : `Surah ${surahNum}`;
+  return `${name} · ${m[2]}–${m[3]}`;
 }
 
 async function loadStats() {
