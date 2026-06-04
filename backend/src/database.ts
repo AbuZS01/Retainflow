@@ -1,6 +1,9 @@
 import Database from 'better-sqlite3';
 import type { Database as BetterSqlite3Database } from 'better-sqlite3';
+import { createRequire } from 'module';
 import type { ReviewResult } from './engine.js';
+
+const require = createRequire(import.meta.url);
 
 export type Db = BetterSqlite3Database;
 
@@ -99,7 +102,60 @@ export function initDb(path: string): Db {
 
   db.exec(`CREATE INDEX IF NOT EXISTS idx_log_user ON review_log(user_id, reviewed_at);`);
 
+  seedQuranIfEmpty(db);
+
   return db;
+}
+
+function seedQuranIfEmpty(db: Db): void {
+  db.exec(`
+    CREATE TABLE IF NOT EXISTS quran_ayahs (
+      id         INTEGER PRIMARY KEY AUTOINCREMENT,
+      surah      INTEGER NOT NULL,
+      ayah       INTEGER NOT NULL,
+      arabic     TEXT    NOT NULL,
+      english    TEXT    NOT NULL DEFAULT '',
+      surah_name TEXT    NOT NULL,
+      UNIQUE(surah, ayah)
+    );
+    CREATE INDEX IF NOT EXISTS idx_quran_surah ON quran_ayahs(surah);
+    CREATE VIRTUAL TABLE IF NOT EXISTS quran_fts USING fts5(
+      english,
+      surah_name,
+      content='quran_ayahs',
+      content_rowid='id'
+    );
+  `);
+
+  const count = (db.prepare('SELECT COUNT(*) as n FROM quran_ayahs').get() as { n: number }).n;
+  if (count > 0) return;
+
+  console.log('Seeding Quran data…');
+  interface Verse { id: number; text: string; translation: string; }
+  interface Surah  { id: number; transliteration: string; translation: string; verses: Verse[]; }
+  const quranEn: Surah[] = require('quran-json/dist/quran_en.json');
+
+  const insertAyah = db.prepare(
+    `INSERT OR IGNORE INTO quran_ayahs (surah, ayah, arabic, english, surah_name) VALUES (?, ?, ?, ?, ?)`
+  );
+  const insertFts = db.prepare(
+    `INSERT INTO quran_fts (rowid, english, surah_name)
+     SELECT id, english, surah_name FROM quran_ayahs
+     WHERE surah = ? AND ayah = ? AND id NOT IN (SELECT rowid FROM quran_fts)`
+  );
+
+  db.transaction(() => {
+    for (const surah of quranEn) {
+      const label = `${surah.transliteration} (${surah.translation})`;
+      for (const verse of surah.verses) {
+        insertAyah.run(surah.id, verse.id, verse.text, verse.translation, label);
+        insertFts.run(surah.id, verse.id);
+      }
+    }
+  })();
+
+  const seeded = (db.prepare('SELECT COUNT(*) as n FROM quran_ayahs').get() as { n: number }).n;
+  console.log(`Quran seeded — ${seeded} ayahs.`);
 }
 
 export function createUser(db: Db, userId: string): void {
