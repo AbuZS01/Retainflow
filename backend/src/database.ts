@@ -293,16 +293,18 @@ export function undoReview(
   itemId: string,
   prevState: { interval: number; ease_factor: number; repetitions: number; next_due_date: number }
 ): void {
-  const { changes } = db.prepare(
-    `UPDATE items SET interval = ?, ease_factor = ?, repetitions = ?, next_due_date = ?
-     WHERE user_id = ? AND item_id = ?`
-  ).run(prevState.interval, prevState.ease_factor, prevState.repetitions, prevState.next_due_date, userId, itemId);
-  if (changes === 0) throw new Error(`ITEM_NOT_FOUND: ${itemId}`);
-  db.prepare(
-    `DELETE FROM review_log WHERE id = (
-       SELECT id FROM review_log WHERE item_id = ? AND user_id = ? ORDER BY reviewed_at DESC LIMIT 1
-     )`
-  ).run(itemId, userId);
+  db.transaction(() => {
+    const { changes } = db.prepare(
+      `UPDATE items SET interval = ?, ease_factor = ?, repetitions = ?, next_due_date = ?
+       WHERE user_id = ? AND item_id = ?`
+    ).run(prevState.interval, prevState.ease_factor, prevState.repetitions, prevState.next_due_date, userId, itemId);
+    if (changes === 0) throw new Error(`ITEM_NOT_FOUND: ${itemId}`);
+    db.prepare(
+      `DELETE FROM review_log WHERE id = (
+         SELECT id FROM review_log WHERE item_id = ? AND user_id = ? ORDER BY reviewed_at DESC LIMIT 1
+       )`
+    ).run(itemId, userId);
+  })();
 }
 
 export function getReviewLog(db: Db, userId: string, limit = 100): LogRow[] {
