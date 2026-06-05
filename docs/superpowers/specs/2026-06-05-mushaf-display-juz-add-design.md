@@ -1,4 +1,4 @@
-# Design: Mushaf Flow Display + Bulk Add by Juz
+# Design: Mushaf Flow Display + Bulk Add by Juz + Audio Loop
 
 **Date:** 2026-06-05  
 **Status:** Approved
@@ -7,10 +7,11 @@
 
 ## Summary
 
-Two features:
+Three features:
 
 1. **Mushaf flow display** — render the Arabic text of a review card as continuous flowing prose with inline ۝ ayah markers, matching the visual experience of reading a physical mushaf.
 2. **Bulk add by Juz** — let users add an entire Juz at once by picking a chunk size (5 / 10 / 15 / 20 ayahs), which auto-creates multiple items without manual range entry.
+3. **Audio loop** — let users repeat the recitation of a card 2×, 5×, or infinitely to aid memorisation through repetition.
 
 ---
 
@@ -68,12 +69,40 @@ Raised from **5 to 50 items** in `database.ts`. This accommodates 2–3 Juzs at 
 
 ---
 
+## Feature 3: Audio Loop
+
+### What changes
+
+`audioState` in `app.js` gains two new fields: `loopMode` (one of `1`, `2`, `5`, `Infinity`) and `loopsDone` (integer counter, reset to 0 on each new card).
+
+The `ended` handler inside `playFromIdx()` is updated: when the last ayah in the range finishes, if `loopsDone + 1 < loopMode`, increment `loopsDone` and restart from index 0. Otherwise stop as today.
+
+### UI
+
+A **Repeat row** is added inside `#audio-player`, below the play/pause controls:
+
+- Label: "Repeat"
+- Four pill buttons: `1×` `2×` `5×` `∞`
+- The active mode is filled (gold background); inactive modes are outlined.
+- The ayah label updates to show loop progress while looping: e.g. `1:3 · loop 3 / 5`.
+- For finite loops (2× or 5×), a row of small dots appears below the buttons — filled dots for completed loops, faded for remaining.
+- The selected mode is persisted in `localStorage` as `rf_loop_mode`. Defaults to `1×`.
+
+### What does NOT change
+
+- Reciter selection
+- Play/pause behaviour
+- How ayahs advance within a single playthrough
+
+---
+
 ## Files Changed
 
 | File | Change |
 |------|--------|
-| `frontend/app.js` | `renderCardContent()` — inline flow rendering; add-screen preview update; `JUZ_BOUNDARIES` constant; By Juz tab UI + batch add logic |
-| `frontend/style.css` | Styles for ۝ marker, By Juz tab, chunk size buttons; bump SW cache version comment |
+| `frontend/app.js` | `renderCardContent()` — inline flow rendering; add-screen preview update; `JUZ_BOUNDARIES` constant; By Juz tab UI + batch add logic; `audioState` loop fields; `playFromIdx()` loop logic; loop selector UI + events |
+| `frontend/index.html` | Loop selector markup inside `#audio-player` |
+| `frontend/style.css` | Styles for ۝ marker, By Juz tab, chunk size buttons, loop pill buttons, progress dots; bump SW cache version comment |
 | `frontend/sw.js` | Bump cache name (e.g. `retainflow-v25`) |
 | `backend/src/database.ts` | Change free tier limit from 5 to 50 |
 
