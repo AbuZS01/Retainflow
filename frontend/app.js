@@ -308,7 +308,7 @@ function filterContent(rawContent) {
   return rawContent
     .split('\n\n')
     .map((block) => block.split('\n')[0])
-    .join('\n');
+    .join('\n\n');
 }
 
 function updateTranslationBtn() {
