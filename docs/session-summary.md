@@ -29,7 +29,7 @@ A mobile-first PWA for Quran memorisation using the SM-2 spaced repetition algor
 | Method | Path | Description |
 |--------|------|-------------|
 | POST | `/api/users` | Create/ensure user |
-| POST | `/api/items` | Add item (auto-creates user; 5-item free tier) — rate limited 10/min |
+| POST | `/api/items` | Add item (auto-creates user; 50-item free tier) — rate limited 10/min |
 | GET | `/api/items/:userId` | Get due items |
 | GET | `/api/items/:userId/all` | Get all items (queue view + upcoming strip) |
 | PUT | `/api/items/:itemId/review` | Submit review (`quality` + `user_id` required in body) |
@@ -54,17 +54,18 @@ A mobile-first PWA for Quran memorisation using the SM-2 spaced repetition algor
 - Gzip compression via `@fastify/compress`
 - Rate limiting via `@fastify/rate-limit` — 60/min global, 10/min on add + search
 - Security headers on all responses: `X-Content-Type-Options`, `X-Frame-Options`, `Referrer-Policy`, `Permissions-Policy`
-- **CSP header** on HTML responses (`script-src 'self' 'unsafe-inline'`, `style-src fonts.googleapis.com 'unsafe-inline'`, `font-src fonts.gstatic.com`, `media-src everyayah.com`)
+- **CSP header** on HTML responses: `script-src 'self' 'unsafe-inline'`, `style-src fonts.googleapis.com 'unsafe-inline'`, `font-src fonts.gstatic.com`, `media-src everyayah.com`, `img-src 'self' data: https://api.qrserver.com`
 - Cache headers: `no-cache, no-store` for `index.html`/`sw.js`, `no-cache` for JS/CSS, `max-age=86400` for images/fonts, `no-store` for API
 - `requireUserId(user_id, reply)` helper — typed guard used by review/delete/notes/snooze endpoints
 - `POST /api/items` calls `createUser()` first (idempotent — anonymous users may skip `/api/users`)
+- Free tier error message: "Free tier is limited to 50 parallel tracking decks"
 
 ### `backend/src/database.ts`
 - Tables: `users`, `items` (composite PK `(user_id, item_id)`), `review_log`, `quran_ayahs` (FTS5)
 - **Schema migrations guarded by `PRAGMA user_version`:**
   - v0→1 (M1): add content/notes columns
   - v1→2 (M2): fix PK from `item_id TEXT PRIMARY KEY` → `PRIMARY KEY (user_id, item_id)`
-- Free tier: 5 items max — `count >= 5` throws `LIMIT_REACHED`
+- **Free tier: 50 items max** — `count >= 50` throws `LIMIT_REACHED` (raised from 5 this session)
 - `addItem()` uses `INSERT OR IGNORE` + checks `changes === 0` → throws `DUPLICATE_ITEM`
 - All single-item functions take `(db, userId, itemId, ...)` — composite key throughout
 - `updateNotes` and `snoozeItem` throw `ITEM_NOT_FOUND` if `changes === 0`
@@ -74,39 +75,57 @@ A mobile-first PWA for Quran memorisation using the SM-2 spaced repetition algor
 ### `frontend/index.html`
 Full SPA with views: `view-landing`, `view-dashboard`, `view-add`, `view-review`, `view-complete`, `view-queue`, `view-stats`, plus `profile-overlay` and `#bottom-nav`.
 
-**IMPORTANT:** `<script src="app.js">` and SW registration script must be placed **after** `<nav id="bottom-nav">` at the end of `<body>`. If placed before, `querySelectorAll('.nav-tab')` finds 0 elements at init time and no nav listeners are attached.
+- **`#desktop-gate`** — shown via CSS (`@media (min-width:768px) and (pointer:fine)`) to non-touch desktop visitors. Contains QR code from `api.qrserver.com` pointing to the live app URL. The app (`#app`, `#bottom-nav`) is hidden on desktop.
+- **`#playback-sheet`** — fixed bottom sheet for audio playback (replaces old `#audio-player` inside the review card). Contains: reciter select, ayah label (`#audio-ayah-label`), progress bar (`#ps-track` / `#ps-fill`), time displays (`#ps-time-cur`, `#ps-time-rem`), controls (⏮`#ps-prev`, ↺`#ps-replay`, ▶`#audio-play-btn`, ⏭`#ps-next-ayah`, `#ps-next-verse`), loop buttons (`.loop-btn`), loop dots (`#loop-dots`).
+- `<script src="app.js">` and SW registration script must be placed **after** `<nav id="bottom-nav">` at the end of `<body>`. If placed before, `querySelectorAll('.nav-tab')` finds 0 elements at init time and no nav listeners are attached.
 
 ### `frontend/style.css`
-- SW cache comment: `retainflow-v24`
+- SW cache comment: `retainflow-v29`
 - Light theme: `--bg: #fdf8e1`, `--accent: #7a5900`; dark: `--accent: #c9a227`
-- `cursor: pointer` on `.lp-cta-btn` (iOS click event fix inside scroll container)
-- `touch-action: manipulation` on `.nav-tab` (removes 300ms tap delay on iOS)
-- Arabic font: `'Scheherazade New', Georgia, serif` — 2rem, centered, line-height 2.2
-- Rating key CSS block: `.rating-key-wrap`, `.rating-key-popover` (z-index 101)
-- Z-index stack: bottom-nav=90, review overlay=100, rating-key popover=101, profile overlay=110
+- **Desktop gate:** `#desktop-gate { display:none }` by default; shown + app hidden under `@media (min-width:768px) and (pointer:fine)`
+- **Ayah sections:** `.ayah-section` wrapper per ayah; `.ayah-section--playing` adds gold tint highlight on active ayah; `.en-verse` for inline English below each ayah
+- **Tappable words:** `.ar-word--tappable` with pointer cursor and hover highlight
+- **Playback sheet:** `.playback-sheet` fixed bottom, `border-radius: 16px 16px 0 0`, `touch-action: pan-x`, transition for smooth swipe-dismiss; `.sheet-dismissed` slides it off with `translateY(110%)`
+- `.review-scroll-area` has `padding-bottom: 200px` so content isn't hidden behind the sheet
+- Arabic flow: `.ar-flow` (direction:rtl, 2rem, Scheherazade New, `overflow-wrap: break-word`), `.ayah-marker` (accent colour, inline)
+- Z-index stack: bottom-nav=90, review overlay=100, rating-key popover=101, profile overlay=110, playback-sheet=120
 
-### `frontend/app.js` (~1580 lines)
+### `frontend/app.js` (~1750 lines)
 
 | Feature | Detail |
 |---------|--------|
-| UUID | `generateUUID()` polyfill (iOS <15.4 compat) used in `getOrCreateUserId` + profile creation |
+| UUID | `generateUUID()` polyfill (iOS <15.4 compat) |
 | Profiles | `renderProfileList()` uses DOM methods — no innerHTML for user-supplied name |
-| SM-2 review | `submitReview(quality)` → PUT /review with `user_id`; null guard at top |
-| Rating key | `computeInterval(card, quality)` mirrors engine.ts; `previewIntervals(card)` uses `Object.fromEntries`; called in `startReview()` to populate ⓘ popover |
-| ⓘ popover | Toggle on `#rating-key-btn` click; dismiss on outside click; `aria-expanded` kept in sync; reset on card advance |
-| Notes | `apiFetch PUT /notes` includes `user_id: state.userId` |
-| Snooze | `apiFetch PUT /snooze` includes `user_id: state.userId` |
-| `prettyItemId(id)` | Looks up surah name from `SURAHS` array → `Al-Fatiha · 1–7`. Used in dashboard rows, delete aria-label, queue view, stats log. |
+| SM-2 review | `submitReview(quality)` → PUT /review with `user_id` |
+| Rating key | `computeInterval` / `previewIntervals` — populate ⓘ popover in `startReview()` |
+| `prettyItemId(id)` | Surah name lookup → `Al-Fatiha · 1–7` |
+| `toArabicNumeral(n)` | Converts ASCII digits → Eastern Arabic (٠١٢٣…) |
+| `getStartAyah(itemId)` | Parses `surah-X-ayat-FROM-TO` → returns FROM |
+| `fmtTime(s)` | Formats seconds → `m:ss` for progress bar |
+| `filterContent(rawContent)` | Strips English when translation off — joins with `\n\n` (critical: keeps all ayah blocks) |
+| `renderWordLevel(rawContent)` | Per-ayah `.ayah-section` divs each containing `.ar-flow` (Arabic + ۝ marker) + `.en-verse` (English inline). Each word is `.ar-word--tappable` — click calls `showPlaybackSheet()` then `playFromIdx(ayahIdx)`. |
+| Juz browser | `JUZ_STARTS` (30 entries), `getSurahsInJuz(juz)`, `selectJuz()` with bulk-add row |
+| `getJuzChunk()` | Reads `rf_juz_chunk`, defaults 10 |
+| `addJuzItems(juzNum, chunkSize)` | Batch add: captures difficulty at call time, handles errors, sets `rf_has_items`, calls `loadDashboard()` |
+| `audioState` | `{ audio, surah, ayahs, currentIdx, playing, loopMode, loopsDone, singleAyahMode }` |
+| `getLoopMode()` | Reads `rf_loop_mode`; handles `'Infinity'` string |
+| `playFromIdx(idx)` | Plays ayah; `timeupdate` drives `#ps-fill` / time labels; `ended` respects `singleAyahMode` and `loopMode` |
+| `stopAudio()` | Pauses, clears, resets state + progress bar |
+| `initAudioForItem(itemId)` | Shows `#playback-sheet`, resets all state |
+| `showPlaybackSheet()` | Removes `hidden` + `sheet-dismissed` — call before `playFromIdx` when re-showing after swipe dismiss |
+| Swipe dismiss | IIFE: `touchstart/move/end` on sheet; dy > 80px → `sheet-dismissed`; audio keeps playing |
+| Sheet buttons | `ps-prev`, `ps-replay`, `audio-play-btn`, `ps-next-ayah`, `ps-next-verse` (advances to next review card), `ps-track` click (seek) |
+| Loop controls | `.loop-btn` `data-loop` attr; persisted to `rf_loop_mode`; `#loop-dots` for finite modes |
+| `updateAudioUI()` | Syncs play btn, label, loop btns, dots, **highlights `.ayah-section--playing`** by matching `data-ayah-num` |
 
 ### `frontend/sw.js`
-- Cache name: `retainflow-v24`
-- Standard `c.addAll(SHELL)` on install (server sends `no-cache` for JS/CSS so SW always gets fresh files)
+- Cache name: `retainflow-v29`
 - Network-first for `/api/`, cache-first for shell assets
 
 ### `Dockerfile` (repo root)
 - Multi-stage: `node:20-slim` builder + production image, both `--platform=linux/amd64`
 - Builder installs `python3 make g++` for native addon compilation
-- `npm ci` with `**/node_modules` excluded from `.dockerignore` (prevents Windows-compiled `better_sqlite3.node` from overwriting Linux build)
+- `npm ci` with `**/node_modules` excluded from `.dockerignore`
 - Production image: `backend/dist/` + `backend/node_modules/` + `frontend/`
 - CMD: `node backend/dist/server.js`
 
@@ -129,14 +148,6 @@ fly deploy
 - `DB_PATH=/data/muraja.db`
 - `ALLOWED_ORIGINS=https://amir-buoyant-coral-631.fly.dev`
 
-**First deploy only:**
-```powershell
-fly launch --no-deploy
-fly volumes create muraja_data --size 1 --region lhr
-fly secrets set DB_PATH=/data/muraja.db ALLOWED_ORIGINS=https://amir-buoyant-coral-631.fly.dev
-fly deploy
-```
-
 ---
 
 ## Tests
@@ -152,20 +163,19 @@ cd C:\Users\Amir_\Retainflow\backend; npx vitest run
 ## Recent Git Log
 
 ```
+3558baf feat: swipe down to dismiss playback sheet, tap word to restore it
+192dfd0 feat: bottom sheet player, tap-word-to-play, inline English per verse
+1358a8f feat: desktop QR gate + tap ayah marker to play from/play single ayah
+1ef5c93 fix: add spaces between Arabic word spans and overflow-wrap to fix text cutoff
+475fed8 fix: set rf_has_items flag after Juz bulk add so empty state is correct
+f66452f fix: reset loopsDone in stopAudio, fix loop button aria-label
+f3cf6ef feat: audio loop — repeat recitation 2x, 5x, or infinitely
+59f522e fix: surface network errors in Juz bulk add, capture difficulty at call time
+3f18f68 feat: bulk add entire Juz with configurable ayah chunk size
+3226d88 feat: mushaf flow display — inline Arabic with ayah markers
+0e61aed fix: filterContent must join blocks with double newline so all ayahs render
+6ed27b4 feat: raise free tier limit from 5 to 50 items
 a4988f9 fix: move script tags after nav so querySelectorAll finds nav buttons at init
-e9b9cd0 fix: touch-action manipulation on nav tabs to fix iOS tap issue, bump SW v24
-bdd6892 feat: auto-seed Quran data on startup if quran_ayahs table is empty
-205ceeb fix: replace fullwidth plus with plain + on nav add button
-88f8b2e fix: exclude backend/node_modules from Docker build context (was overwriting Linux binary with Windows one)
-452a33a fix: use npm_config_build_from_source=true to compile better-sqlite3 from source
-dd50693 fix: switch to node:20-slim, explicit linux/amd64 platform for better-sqlite3
-bd0b55f fix: Dockerfile add Alpine build tools for better-sqlite3
-cdcfeeb fix: fly.toml app name, Dockerfile alpine build tools, auto-stop machines
-eac2b9d feat: Fly.io deployment config — Dockerfile, fly.toml, persistent volume
-6af9b2f chore: untrack junk files, add to .gitignore
-62e2bf1 feat: add @fastify/rate-limit — 60/min global, 10/min on add+search
-ce88c68 feat: dashboard friendly surah names, bump SW cache to v22
-e19593c feat: mushaf-style Arabic — Scheherazade New font, larger size, centered
 ```
 
 ---
@@ -180,11 +190,12 @@ None — working tree is clean.
 
 | Item | Priority | Notes |
 |------|----------|-------|
+| App Store / Play Store | High | PWA is ready; wrap with Capacitor or TWA for store listing |
+| Custom domain | Medium | Currently on `amir-buoyant-coral-631.fly.dev` — meta tags still reference `retainflow.app` |
 | `og-image.png` (1200×630px) | Medium | Referenced in OG/Twitter meta tags but file missing |
-| Custom domain | Medium | Currently on `amir-buoyant-coral-631.fly.dev` — rename app or add custom domain when ready. Meta tags still reference `retainflow.app` |
-| Auth on GET user endpoints | Low | `/api/items/:userId` + `/api/stats/:userId` return data to any caller who knows a userId — acceptable for anonymous model but documented risk |
 | Upgrade flow | Low | `alert('Upgrade coming soon!')` placeholder in `app.js` |
 | `sitemap.xml` | Low | `robots.txt` references it but file missing |
+| Auth on GET user endpoints | Low | `/api/items/:userId` + `/api/stats/:userId` — acceptable for anonymous model but documented risk |
 
 ---
 
@@ -198,3 +209,6 @@ None — working tree is clean.
 - **Script placement**: `app.js` must come after `<nav id="bottom-nav">` in the HTML — if placed before, the nav buttons have no listeners at init time.
 - **Docker + better-sqlite3**: `**/node_modules` in `.dockerignore` is critical — without it, Windows-compiled `.node` binary overwrites the Linux one built during `npm ci`.
 - **Fly.io auto-seed**: `seedQuranIfEmpty()` in `initDb()` seeds 6236 ayahs on first boot. Idempotent — checks count before inserting.
+- **Desktop gate**: Pure CSS media query (`min-width:768px` + `pointer:fine`) — no JS, no redirect. Desktop users see QR code; mobile users see the app.
+- **Playback sheet**: Fixed to viewport bottom (`position:fixed`), not inside the scroll container. Swipe-down (>80px) adds `.sheet-dismissed` (translateY 110%) — audio keeps playing. Tapping any Arabic word calls `showPlaybackSheet()` then `playFromIdx()` to restore it.
+- **Per-ayah sections**: `renderWordLevel` creates one `.ayah-section` per ayah with Arabic + inline English. `data-ayah-num` attribute lets `updateAudioUI` highlight the playing section without re-rendering.
