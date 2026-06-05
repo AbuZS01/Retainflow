@@ -153,6 +153,33 @@ export function buildApp(dbPath: string): FastifyInstance {
     }
   });
 
+  // PUT /api/items/:itemId/range
+  app.put('/api/items/:itemId/range', async (req, reply) => {
+    const { itemId } = req.params as { itemId: string };
+    const { user_id, surah, from, to } = req.body as {
+      user_id?: string; surah?: number; from?: number; to?: number;
+    };
+    if (!requireUserId(user_id, reply)) return;
+    if (
+      typeof surah !== 'number' || typeof from !== 'number' || typeof to !== 'number' ||
+      surah < 1 || surah > 114 || from < 1 || to < from || to - from > 300
+    ) return reply.status(400).send({ error: 'invalid range' });
+
+    const newItemId = `surah-${surah}-ayat-${from}-${to}`;
+    const ayahs = getAyahRange(db, surah, from, to);
+    const newContent = ayahs.map(a => `${a.arabic}\n${a.english}`).join('\n\n');
+    try {
+      renameItem(db, user_id, itemId, newItemId, newContent);
+      return reply.send({ ok: true, item_id: newItemId });
+    } catch (err: any) {
+      if (err.message.startsWith('ITEM_NOT_FOUND'))
+        return reply.status(404).send({ error: 'ITEM_NOT_FOUND' });
+      if (err.message === 'DUPLICATE_ITEM')
+        return reply.status(409).send({ error: 'DUPLICATE_ITEM', message: 'That range is already tracked.' });
+      throw err;
+    }
+  });
+
   // GET /api/stats/:userId
   app.get('/api/stats/:userId', async (req, reply) => {
     const { userId } = req.params as { userId: string };
@@ -175,10 +202,38 @@ export function buildApp(dbPath: string): FastifyInstance {
   // PUT /api/items/:itemId/snooze
   app.put('/api/items/:itemId/snooze', async (req, reply) => {
     const { itemId } = req.params as { itemId: string };
-    const { user_id } = req.body as { user_id?: string };
+    const { user_id, days = 1 } = req.body as { user_id?: string; days?: number };
     if (!requireUserId(user_id, reply)) return;
-    snoozeItem(db, user_id, itemId);
+    if (![1, 3, 7, 14].includes(days))
+      return reply.status(400).send({ error: 'days must be 1, 3, 7, or 14' });
+    snoozeItem(db, user_id, itemId, days);
     return reply.send({ ok: true });
+  });
+
+  // PUT /api/items/:itemId/undo-review
+  app.put('/api/items/:itemId/undo-review', async (req, reply) => {
+    const { itemId } = req.params as { itemId: string };
+    const { user_id, prev_state } = req.body as {
+      user_id?: string;
+      prev_state?: { interval: number; ease_factor: number; repetitions: number; next_due_date: number };
+    };
+    if (!requireUserId(user_id, reply)) return;
+    if (
+      !prev_state ||
+      typeof prev_state.interval !== 'number' ||
+      typeof prev_state.ease_factor !== 'number' ||
+      typeof prev_state.repetitions !== 'number' ||
+      typeof prev_state.next_due_date !== 'number'
+    ) return reply.status(400).send({ error: 'prev_state required with interval, ease_factor, repetitions, next_due_date' });
+
+    try {
+      undoReview(db, user_id, itemId, prev_state);
+      return reply.send({ ok: true });
+    } catch (err: any) {
+      if (err.message.startsWith('ITEM_NOT_FOUND'))
+        return reply.status(404).send({ error: 'ITEM_NOT_FOUND' });
+      throw err;
+    }
   });
 
   // GET /api/quran/search?q=...
