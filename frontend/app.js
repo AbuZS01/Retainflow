@@ -221,6 +221,16 @@ function updateTextModeBtn() {
   document.getElementById('text-mode-btn').textContent = MODE_LABELS[textMode];
 }
 
+function toArabicNumeral(n) {
+  return String(n).replace(/\d/g, d => '٠١٢٣٤٥٦٧٨٩'[d]);
+}
+
+function getStartAyah(itemId) {
+  if (!itemId) return 1;
+  const m = itemId.match(/ayat-(\d+)-\d+$/);
+  return m ? parseInt(m[1], 10) : 1;
+}
+
 // Render ayah content with word-level Arabic display
 function renderWordLevel(rawContent) {
   const contentEl = document.getElementById('review-content');
@@ -232,52 +242,58 @@ function renderWordLevel(rawContent) {
   const isHidden    = textMode === 'hidden' && !contentRevealed;
   const isFirstOnly = textMode === 'first'  && !contentRevealed;
 
-  if (isHidden) {
-    revealBtn.classList.remove('hidden');
-  } else {
-    revealBtn.classList.add('hidden');
-  }
+  revealBtn.classList.toggle('hidden', !isHidden);
 
-  const blocks = rawContent.split('\n\n').filter(b => b.trim());
+  const startAyah = getStartAyah(state.reviewItem?.item_id);
+  const blocks    = rawContent.split('\n\n').filter(b => b.trim());
+
+  // Single flowing Arabic paragraph
+  const flowDiv = document.createElement('div');
+  flowDiv.className = 'ar-flow';
+
+  let wordCount = 0;
   blocks.forEach((block, blockIdx) => {
     const lines   = block.split('\n');
     const arabic  = lines[0] || '';
-    const english = lines.slice(1).join(' ');
+    const ayahNum = startAyah + blockIdx;
 
-    const ayahEl = document.createElement('div');
-    ayahEl.className = 'ayah-block';
-
-    // Arabic line
-    const arLine = document.createElement('div');
-    arLine.className = 'ar-line';
-
-    const words = arabic.split(/\s+/).filter(w => w);
-    words.forEach((word, wi) => {
+    arabic.split(/\s+/).filter(w => w).forEach(word => {
       if (isHidden) {
         const chip = document.createElement('span');
         chip.className = 'ar-placeholder';
-        arLine.appendChild(chip);
+        flowDiv.appendChild(chip);
       } else {
         const span = document.createElement('span');
         span.className = 'ar-word';
-        if (isFirstOnly && (blockIdx > 0 || wi > 0)) span.classList.add('ar-faded');
+        if (isFirstOnly && wordCount > 0) span.classList.add('ar-faded');
         span.textContent = word;
-        arLine.appendChild(span);
+        flowDiv.appendChild(span);
       }
+      wordCount++;
     });
 
-    ayahEl.appendChild(arLine);
+    if (!isHidden) {
+      const marker = document.createElement('span');
+      marker.className = 'ayah-marker';
+      marker.textContent = '۝' + toArabicNumeral(ayahNum);
+      flowDiv.appendChild(marker);
+    }
+  });
 
-    // English translation (only if showing & not hidden)
-    if (!isHidden && showTranslation && english) {
+  contentEl.appendChild(flowDiv);
+
+  // English translations listed below the Arabic flow
+  if (!isHidden && showTranslation) {
+    blocks.forEach((block, blockIdx) => {
+      const lines   = block.split('\n');
+      const english = lines.slice(1).join(' ');
+      if (!english) return;
       const enLine = document.createElement('div');
       enLine.className = 'en-line';
-      enLine.textContent = english;
-      ayahEl.appendChild(enLine);
-    }
-
-    contentEl.appendChild(ayahEl);
-  });
+      enLine.textContent = `(${startAyah + blockIdx}) ${english}`;
+      contentEl.appendChild(enLine);
+    });
+  }
 }
 
 function applyTextMode(content) {
@@ -653,7 +669,7 @@ async function updateRangePreview() {
   }
   const { status, data } = await apiFetch('GET', `/api/quran/${selectedSurah.surah}/${from}/${to}`);
   if (status !== 200 || !Array.isArray(data)) return;
-  preview.textContent = data.map((a) => a.arabic).join('  ');
+  preview.textContent = data.map((a, i) => `${a.arabic} ۝${toArabicNumeral(from + i)}`).join(' ');
   preview.classList.add('has-content');
 }
 

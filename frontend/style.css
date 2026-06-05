@@ -578,6 +578,35 @@ h2 { font-size: 1.35rem; margin-bottom: .35rem; }
 .ayah-block { margin-bottom: .75rem; }
 .ayah-block:last-child { margin-bottom: 0; }
 .ar-line { direction: rtl; text-align: center; line-height: 2.2; font-size: 2rem; color: var(--text); display: flex; flex-wrap: wrap; justify-content: center; gap: .2em; }
+
+.ar-flow {
+  direction: rtl;
+  text-align: right;
+  font-family: 'Scheherazade New', Georgia, serif;
+  font-size: 2rem;
+  line-height: 2.2;
+  color: var(--text);
+  margin-bottom: 0.5rem;
+}
+
+.ar-flow .ar-word {
+  display: inline;
+  cursor: default;
+}
+
+.ar-flow .ar-placeholder {
+  display: inline-block;
+}
+
+.ayah-marker {
+  display: inline;
+  font-family: 'Scheherazade New', Georgia, serif;
+  font-size: 1rem;
+  color: var(--accent);
+  margin: 0 0.15em;
+  user-select: none;
+}
+
 .ar-word { display: inline-block; padding: .05em .1em; border-radius: 3px; transition: opacity .2s; }
 .ar-word.ar-faded { opacity: .18; }
 .ar-placeholder { display: inline-block; width: 2.5em; height: 1.1em; background: var(--border); border-radius: 4px; margin: .15em .1em; vertical-align: middle; }
