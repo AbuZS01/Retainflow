@@ -887,7 +887,8 @@ function stopAudio() {
     audioState.audio.src = '';
     audioState.audio = null;
   }
-  audioState.playing = false;
+  audioState.loopsDone = 0;
+  audioState.playing   = false;
   updateAudioUI();
 }
 
