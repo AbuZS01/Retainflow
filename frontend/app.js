@@ -1295,6 +1295,63 @@ function renderJuzGrid() {
   }
 }
 
+function getJuzChunk() {
+  return parseInt(localStorage.getItem('rf_juz_chunk') ?? '10', 10);
+}
+
+async function addJuzItems(juzNum, chunkSize) {
+  const surahs = getSurahsInJuz(juzNum);
+  const chunks = [];
+  surahs.forEach(({ surah, from, to }) => {
+    for (let start = from; start <= to; start += chunkSize) {
+      chunks.push({ surah, from: start, to: Math.min(start + chunkSize - 1, to) });
+    }
+  });
+
+  const statusEl = document.getElementById('juz-add-status');
+  if (!statusEl) return;
+  let added = 0;
+
+  for (const chunk of chunks) {
+    statusEl.textContent = `Adding item ${added + 1} of ${chunks.length}…`;
+
+    const { status: rs, data: rd } = await apiFetch('GET', `/api/quran/${chunk.surah}/${chunk.from}/${chunk.to}`);
+    if (rs !== 200 || !Array.isArray(rd)) continue;
+
+    const itemId  = `surah-${chunk.surah}-ayat-${chunk.from}-${chunk.to}`;
+    const content = rd.map(a => `${a.arabic}\n${a.english}`).join('\n\n');
+    const preset  = DIFFICULTY_INITIAL[selectedDifficulty];
+
+    const { status, data } = await apiFetch('POST', '/api/items', {
+      user_id: state.userId,
+      item_id: itemId,
+      content,
+      initial: {
+        interval:      preset.interval,
+        ease_factor:   preset.ease_factor,
+        repetitions:   preset.repetitions,
+        next_due_date: preset.next_due_date(),
+      },
+    });
+
+    if (status === 409) { added++; continue; } // duplicate — already tracked
+    if (status !== 200 && status !== 201) {
+      if (data?.error === 'LIMIT_REACHED') {
+        state.atLimit = true;
+        statusEl.textContent = `Limit reached — ${added} item${added !== 1 ? 's' : ''} added.`;
+        await loadDashboard();
+        return;
+      }
+      statusEl.textContent = `Error on item ${added + 1}. ${added} added so far.`;
+      return;
+    }
+    added++;
+  }
+
+  statusEl.textContent = `✓ ${added} item${added !== 1 ? 's' : ''} added to your queue`;
+  await loadDashboard();
+}
+
 function selectJuz(juzNum, btn) {
   // Toggle off if same juz clicked again
   if (activeJuz === juzNum) {
@@ -1310,6 +1367,49 @@ function selectJuz(juzNum, btn) {
   const surahs = getSurahsInJuz(juzNum);
   const container = document.getElementById('juz-surahs');
   container.innerHTML = '';
+
+  // ── Bulk-add row ──────────────────────────────────────────────────────────
+  const bulkRow = document.createElement('div');
+  bulkRow.className = 'juz-bulk-row';
+
+  const chunkLabel = document.createElement('span');
+  chunkLabel.className = 'juz-chunk-label';
+  chunkLabel.textContent = 'Ayahs per item:';
+  bulkRow.appendChild(chunkLabel);
+
+  const chunkBtns = document.createElement('div');
+  chunkBtns.className = 'juz-chunk-btns';
+  [5, 10, 15, 20].forEach(n => {
+    const cb = document.createElement('button');
+    cb.className = 'juz-chunk-btn' + (n === getJuzChunk() ? ' active' : '');
+    cb.textContent = n;
+    cb.setAttribute('aria-label', `${n} ayahs per item`);
+    cb.addEventListener('click', () => {
+      localStorage.setItem('rf_juz_chunk', String(n));
+      chunkBtns.querySelectorAll('.juz-chunk-btn').forEach(b => b.classList.remove('active'));
+      cb.classList.add('active');
+    });
+    chunkBtns.appendChild(cb);
+  });
+  bulkRow.appendChild(chunkBtns);
+
+  const addAllBtn = document.createElement('button');
+  addAllBtn.className = 'btn-primary juz-add-all-btn';
+  addAllBtn.textContent = `Add Juz ${juzNum}`;
+  addAllBtn.addEventListener('click', () => {
+    addAllBtn.disabled = true;
+    addJuzItems(juzNum, getJuzChunk()).finally(() => { addAllBtn.disabled = false; });
+  });
+  bulkRow.appendChild(addAllBtn);
+
+  const statusEl = document.createElement('div');
+  statusEl.id = 'juz-add-status';
+  statusEl.className = 'juz-add-status';
+
+  container.appendChild(bulkRow);
+  container.appendChild(statusEl);
+  // ── End bulk-add row ──────────────────────────────────────────────────────
+
   surahs.forEach(({ surah, name, from, to, partial }) => {
     const row = document.createElement('div');
     row.className = 'juz-surah-row';

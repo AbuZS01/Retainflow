@@ -481,6 +481,59 @@ h2 { font-size: 1.35rem; margin-bottom: .35rem; }
 .juz-btn { background: var(--surface); border: 1px solid var(--border); border-radius: 6px; color: var(--sub); cursor: pointer; font-size: .8rem; font-weight: 600; padding: .45rem .25rem; text-align: center; transition: border-color .15s, color .15s; }
 .juz-btn:hover, .juz-btn.active { border-color: var(--accent); color: var(--accent); }
 .juz-surahs { display: flex; flex-direction: column; gap: .4rem; background: var(--bg); border: 1px solid var(--border); border-radius: 8px; padding: .75rem; max-height: 220px; overflow-y: auto; }
+.juz-bulk-row {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  flex-wrap: wrap;
+  padding: 0.65rem 0.75rem;
+  background: var(--card-bg, #fff);
+  border: 1px solid var(--border, #e8dfc0);
+  border-radius: 8px;
+  margin-bottom: 0.5rem;
+}
+
+.juz-chunk-label {
+  font-size: 0.8rem;
+  color: var(--sub);
+  white-space: nowrap;
+}
+
+.juz-chunk-btns {
+  display: flex;
+  gap: 0.3rem;
+}
+
+.juz-chunk-btn {
+  padding: 0.2rem 0.5rem;
+  border-radius: 4px;
+  border: 1.5px solid var(--border, #d4b87a);
+  background: transparent;
+  color: var(--text);
+  font-size: 0.8rem;
+  cursor: pointer;
+}
+
+.juz-chunk-btn.active {
+  border-color: var(--accent);
+  color: var(--accent);
+  font-weight: 600;
+}
+
+.juz-add-all-btn {
+  margin-left: auto;
+  padding: 0.35rem 0.85rem;
+  font-size: 0.85rem;
+}
+
+.juz-add-status {
+  width: 100%;
+  font-size: 0.8rem;
+  color: var(--sub);
+  min-height: 1.25rem;
+  padding: 0 0.1rem;
+}
+
 .juz-surah-row { display: flex; justify-content: space-between; align-items: center; padding: .45rem .5rem; border-radius: 6px; cursor: pointer; transition: background .15s; }
 .juz-surah-row:hover { background: var(--surface); }
 .juz-surah-name { font-size: .875rem; font-weight: 500; color: var(--text); }
