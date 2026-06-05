@@ -1097,13 +1097,6 @@ function initReciterSelect() {
 }
 
 // ── Review ─────────────────────────────────────────────────────────────────
-function buildQuranLink(itemId) {
-  const match = itemId.match(/^surah-(\d+)/);
-  if (match) return `https://quran.com/${match[1]}`;
-  const pageMatch = itemId.match(/^mushaf-page-(\d+)/);
-  if (pageMatch) return `https://quran.com/page/${pageMatch[1]}`;
-  return `https://quran.com`;
-}
 
 function updateProgressBar() {
   const pct = state.sessionTotal > 0 ? (state.sessionDone / state.sessionTotal) * 100 : 0;
@@ -1122,7 +1115,6 @@ function startReview(item) {
   }
   state.reviewItem = item;
   document.getElementById('review-item-id').textContent = item.item_id;
-  document.getElementById('review-link').href = buildQuranLink(item.item_id);
   applyTextMode(filterContent(item.content ?? ''));
   updateTextModeBtn();
   updateTranslationBtn();
@@ -1403,9 +1395,24 @@ function showSessionComplete() {
 document.getElementById('complete-add-btn').addEventListener('click', openAddView);
 document.getElementById('complete-home-btn').addEventListener('click', loadDashboard);
 
+// ── Toast helper ───────────────────────────────────────────────────────────
+function showToast(html, durationMs = 4000) {
+  let el = document.getElementById('app-toast');
+  if (!el) {
+    el = document.createElement('div');
+    el.id = 'app-toast';
+    el.className = 'toast';
+    document.body.appendChild(el);
+  }
+  el.innerHTML = html;
+  el.classList.add('toast-show');
+  clearTimeout(el._timer);
+  el._timer = setTimeout(() => el.classList.remove('toast-show'), durationMs);
+}
+
 // ── Upgrade placeholder ────────────────────────────────────────────────────
 document.getElementById('upgrade-btn').addEventListener('click', () => {
-  alert('Upgrade coming soon! Contact us to unlock unlimited decks.');
+  showToast('✨ Upgrade coming soon — <a href="mailto:amrrehmandin@gmail.com">email us</a> for early access');
 });
 
 // ── Juz browser ────────────────────────────────────────────────────────────
@@ -1681,12 +1688,16 @@ async function renderUpcomingStrip() {
 }
 
 // ── My Queue view ──────────────────────────────────────────────────────────
+let queueAllItems = [];
+
 async function loadQueue() {
   setActiveTab('queue');
   showView('view-queue');
+  document.getElementById('queue-search').value = '';
   const { status, data } = await apiFetch('GET', `/api/items/${state.userId}/all`);
   if (status !== 200 || !Array.isArray(data)) return;
-  renderQueue(data);
+  queueAllItems = data;
+  renderQueue(queueAllItems);
 }
 
 function renderQueue(items) {
@@ -1865,6 +1876,14 @@ function startFromLanding() {
 
 document.getElementById('landing-cta-btn').addEventListener('click', startFromLanding);
 document.getElementById('landing-cta-btn-2').addEventListener('click', startFromLanding);
+
+document.getElementById('queue-search').addEventListener('input', (e) => {
+  const q = e.target.value.trim().toLowerCase();
+  renderQueue(q
+    ? queueAllItems.filter(i => prettyItemId(i.item_id).toLowerCase().includes(q))
+    : queueAllItems
+  );
+});
 
 // ── Init ───────────────────────────────────────────────────────────────────
 initTheme();

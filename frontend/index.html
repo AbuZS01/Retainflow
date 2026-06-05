@@ -328,11 +328,11 @@
         <div id="range-preview" class="range-preview"></div>
         <!-- Difficulty calibration -->
         <div class="difficulty-picker">
-          <p class="difficulty-label">How well do you know this?</p>
+          <p class="difficulty-label">How well do you know this right now?</p>
           <div class="difficulty-pills">
-            <button class="diff-pill" data-difficulty="rusty">Very rusty</button>
-            <button class="diff-pill diff-pill--active" data-difficulty="fresh">Freshly memorised</button>
-            <button class="diff-pill" data-difficulty="solid">Know it well</button>
+            <button class="diff-pill" data-difficulty="rusty">Know it but rusty<span class="diff-hint">First review: today</span></button>
+            <button class="diff-pill diff-pill--active" data-difficulty="fresh">Just memorised<span class="diff-hint">First review: today</span></button>
+            <button class="diff-pill" data-difficulty="solid">Know it well<span class="diff-hint">First review: in 7 days</span></button>
           </div>
         </div>
         <button id="save-item-btn" class="btn-primary">Add to Review Queue</button>
@@ -363,7 +363,6 @@
           </div>
           <div class="review-content" id="review-content"></div>
           <button id="reveal-btn" class="btn-reveal hidden">Tap to reveal</button>
-          <a id="review-link" class="review-link" target="_blank" rel="noopener noreferrer">Open on Quran.com →</a>
         </div>
       </div>
 
@@ -414,6 +413,7 @@
     <div id="view-queue" class="view">
       <h2>My Queue</h2>
       <p class="add-subhead">All your tracked ayah ranges, grouped by when they need review.</p>
+      <input id="queue-search" type="search" placeholder="Filter by surah…" class="queue-search-input" autocomplete="off" />
       <div id="queue-content" class="queue-content"></div>
     </div>
 
