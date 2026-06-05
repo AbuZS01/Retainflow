@@ -4,8 +4,9 @@
 
 A mobile-first PWA for Quran memorisation using the SM-2 spaced repetition algorithm. Tracks ayah ranges, schedules reviews, and helps hafidh maintain their hifz. Previously called "RetainFlow".
 
-**Server:** `cd ~/Retainflow/backend && npm run dev` → `http://localhost:3000`
-**iPhone:** `$env:HOST="0.0.0.0"; npm run dev` then visit `http://192.168.1.204:3000` from Safari
+**Local dev:** `cd C:\Users\Amir_\Retainflow\backend && npm run dev` → `http://localhost:3000`
+**iPhone (local):** `$env:HOST="0.0.0.0"; npm run dev` then visit `http://192.168.1.204:3000` from Safari
+**Production:** https://amir-buoyant-coral-631.fly.dev
 
 ---
 
@@ -14,11 +15,12 @@ A mobile-first PWA for Quran memorisation using the SM-2 spaced repetition algor
 | Layer | Tech |
 |-------|------|
 | Backend | Node.js 20, TypeScript 5, Fastify 5, better-sqlite3 v12 |
-| Plugins | `@fastify/cors`, `@fastify/static`, `@fastify/compress` |
+| Plugins | `@fastify/cors`, `@fastify/static`, `@fastify/compress`, `@fastify/rate-limit` |
 | Testing | Vitest v2 — 37 tests, all passing |
 | Frontend | Vanilla HTML / CSS / JS, PWA (manifest + service worker) |
-| Fonts | Amiri Quran (Arabic), Cormorant Garamond (UI) |
-| DB | SQLite WAL mode, FTS5 for Quran search, seeded with full Quran |
+| Fonts | Scheherazade New (Arabic), Cormorant Garamond (UI) |
+| DB | SQLite WAL mode, FTS5 for Quran search, seeded with full Quran (6236 ayahs) |
+| Hosting | Fly.io free tier, persistent volume at `/data`, region `lhr` |
 
 ---
 
@@ -27,7 +29,7 @@ A mobile-first PWA for Quran memorisation using the SM-2 spaced repetition algor
 | Method | Path | Description |
 |--------|------|-------------|
 | POST | `/api/users` | Create/ensure user |
-| POST | `/api/items` | Add item (auto-creates user; 5-item free tier) |
+| POST | `/api/items` | Add item (auto-creates user; 5-item free tier) — rate limited 10/min |
 | GET | `/api/items/:userId` | Get due items |
 | GET | `/api/items/:userId/all` | Get all items (queue view + upcoming strip) |
 | PUT | `/api/items/:itemId/review` | Submit review (`quality` + `user_id` required in body) |
@@ -35,10 +37,11 @@ A mobile-first PWA for Quran memorisation using the SM-2 spaced repetition algor
 | GET | `/api/stats/:userId` | Stats + review log |
 | PUT | `/api/items/:itemId/notes` | Save notes (`user_id` required in body) |
 | PUT | `/api/items/:itemId/snooze` | Snooze to tomorrow (`user_id` required in body) |
-| GET | `/api/quran/search?q=` | FTS5 Quran search |
+| GET | `/api/quran/search?q=` | FTS5 Quran search — rate limited 10/min |
 | GET | `/api/quran/:surah/:from/:to` | Get ayah range |
 
-**Important:** review, delete, notes, and snooze all now require `user_id` in the request body.
+**Important:** review, delete, notes, and snooze all require `user_id` in the request body.
+**Rate limiting:** global 60 req/min; POST /api/items and GET /api/quran/search capped at 10/min.
 
 ---
 
@@ -49,6 +52,7 @@ A mobile-first PWA for Quran memorisation using the SM-2 spaced repetition algor
 - `bodyLimit: 600_000` on Fastify instance
 - CORS locked to `ALLOWED_ORIGINS` env var (defaults to localhost)
 - Gzip compression via `@fastify/compress`
+- Rate limiting via `@fastify/rate-limit` — 60/min global, 10/min on add + search
 - Security headers on all responses: `X-Content-Type-Options`, `X-Frame-Options`, `Referrer-Policy`, `Permissions-Policy`
 - **CSP header** on HTML responses (`script-src 'self' 'unsafe-inline'`, `style-src fonts.googleapis.com 'unsafe-inline'`, `font-src fonts.gstatic.com`, `media-src everyayah.com`)
 - Cache headers: `no-cache, no-store` for `index.html`/`sw.js`, `no-cache` for JS/CSS, `max-age=86400` for images/fonts, `no-store` for API
@@ -65,31 +69,20 @@ A mobile-first PWA for Quran memorisation using the SM-2 spaced repetition algor
 - All single-item functions take `(db, userId, itemId, ...)` — composite key throughout
 - `updateNotes` and `snoozeItem` throw `ITEM_NOT_FOUND` if `changes === 0`
 - FTS5 LIKE fallback escapes `%`, `_`, `\` with `ESCAPE '\\'`
+- **`seedQuranIfEmpty(db)`** — called from `initDb()`; creates quran_ayahs + FTS tables and seeds 6236 ayahs from `quran-json` package if count is 0. Runs on every startup, no-ops if already seeded.
 
 ### `frontend/index.html`
 Full SPA with views: `view-landing`, `view-dashboard`, `view-add`, `view-review`, `view-complete`, `view-queue`, `view-stats`, plus `profile-overlay` and `#bottom-nav`.
 
-**Review bottom dock structure (added this session):**
-```html
-<div class="review-bottom-dock">
-  <div class="rating-key-wrap">
-    <span class="dock-label">How did it go?</span>
-    <button id="rating-key-btn" aria-label="Rating key" aria-expanded="false">ⓘ</button>
-    <div id="rating-key-popover" class="rating-key-popover">
-      <div class="rk-row"><span class="rk-dot rk-forgot"></span><span class="rk-label">Forgot</span><span class="rk-days" id="rk-days-forgot">—</span></div>
-      <!-- hard / good / easy rows -->
-    </div>
-  </div>
-  <div class="quality-btns">...</div>
-  <button id="snooze-btn">...</button>
-</div>
-```
+**IMPORTANT:** `<script src="app.js">` and SW registration script must be placed **after** `<nav id="bottom-nav">` at the end of `<body>`. If placed before, `querySelectorAll('.nav-tab')` finds 0 elements at init time and no nav listeners are attached.
 
 ### `frontend/style.css`
-- SW cache comment: `retainflow-v21`
+- SW cache comment: `retainflow-v24`
 - Light theme: `--bg: #fdf8e1`, `--accent: #7a5900`; dark: `--accent: #c9a227`
 - `cursor: pointer` on `.lp-cta-btn` (iOS click event fix inside scroll container)
-- Rating key CSS block: `.rating-key-wrap` (position:relative, flex), `.rating-key-btn` (ghost circle), `.rating-key-popover` (display:none → .open:display:block, position:absolute, z-index:101), `.rk-row/.rk-dot/.rk-label/.rk-days`
+- `touch-action: manipulation` on `.nav-tab` (removes 300ms tap delay on iOS)
+- Arabic font: `'Scheherazade New', Georgia, serif` — 2rem, centered, line-height 2.2
+- Rating key CSS block: `.rating-key-wrap`, `.rating-key-popover` (z-index 101)
 - Z-index stack: bottom-nav=90, review overlay=100, rating-key popover=101, profile overlay=110
 
 ### `frontend/app.js` (~1580 lines)
@@ -103,11 +96,46 @@ Full SPA with views: `view-landing`, `view-dashboard`, `view-add`, `view-review`
 | ⓘ popover | Toggle on `#rating-key-btn` click; dismiss on outside click; `aria-expanded` kept in sync; reset on card advance |
 | Notes | `apiFetch PUT /notes` includes `user_id: state.userId` |
 | Snooze | `apiFetch PUT /snooze` includes `user_id: state.userId` |
+| `prettyItemId(id)` | Looks up surah name from `SURAHS` array → `Al-Fatiha · 1–7`. Used in dashboard rows, delete aria-label, queue view, stats log. |
 
 ### `frontend/sw.js`
-- Cache name: `retainflow-v21`
+- Cache name: `retainflow-v24`
 - Standard `c.addAll(SHELL)` on install (server sends `no-cache` for JS/CSS so SW always gets fresh files)
 - Network-first for `/api/`, cache-first for shell assets
+
+### `Dockerfile` (repo root)
+- Multi-stage: `node:20-slim` builder + production image, both `--platform=linux/amd64`
+- Builder installs `python3 make g++` for native addon compilation
+- `npm ci` with `**/node_modules` excluded from `.dockerignore` (prevents Windows-compiled `better_sqlite3.node` from overwriting Linux build)
+- Production image: `backend/dist/` + `backend/node_modules/` + `frontend/`
+- CMD: `node backend/dist/server.js`
+
+### `fly.toml` (repo root)
+- App: `amir-buoyant-coral-631`, region `lhr`
+- Volume `muraja_data` → `/data`, size 1GB
+- `auto_stop_machines = true`, `auto_start_machines = true`, `min_machines_running = 0`
+- Health check: `GET /` every 15s
+
+---
+
+## Fly.io Deploy
+
+```powershell
+cd C:\Users\Amir_\Retainflow
+fly deploy
+```
+
+**Secrets set:**
+- `DB_PATH=/data/muraja.db`
+- `ALLOWED_ORIGINS=https://amir-buoyant-coral-631.fly.dev`
+
+**First deploy only:**
+```powershell
+fly launch --no-deploy
+fly volumes create muraja_data --size 1 --region lhr
+fly secrets set DB_PATH=/data/muraja.db ALLOWED_ORIGINS=https://amir-buoyant-coral-631.fly.dev
+fly deploy
+```
 
 ---
 
@@ -115,8 +143,8 @@ Full SPA with views: `view-landing`, `view-dashboard`, `view-add`, `view-review`
 
 **37 tests, all passing.**
 
-```bash
-cd ~/Retainflow/backend && npx vitest run
+```powershell
+cd C:\Users\Amir_\Retainflow\backend; npx vitest run
 ```
 
 ---
@@ -124,16 +152,20 @@ cd ~/Retainflow/backend && npx vitest run
 ## Recent Git Log
 
 ```
-153ed74 security: CSP header, bodyLimit, innerHTML→DOM in profiles, LIKE wildcard escape, updateNotes/snoozeItem ownership check
-7fddc3e simplify: PRAGMA user_version migrations, requireUserId helper, previewIntervals fromEntries, remove redundant SW no-store
-d4378c4 fix: SW fetches assets with no-store on install; serve app.js+style.css with no-cache headers
-a4348bd fix: composite primary key (user_id, item_id) — multiple users can now track the same surah range
-6b0bd14 fix: auto-create user on addItem, remove debug code, bump SW cache to v20
-23aeb15 fix: add cursor:pointer to lp-cta-btn for iOS click events in scroll container
-15f2ae0 fix: polyfill crypto.randomUUID for iOS < 15.4, bump SW cache to v18
-239cdf6 feat: rename app to muraja'ah, bump SW cache to v17
-1eaea97 fix(review-key): close popover when advancing to next card
-e6b119c feat(review-key): compute and display per-card intervals in popover
+a4988f9 fix: move script tags after nav so querySelectorAll finds nav buttons at init
+e9b9cd0 fix: touch-action manipulation on nav tabs to fix iOS tap issue, bump SW v24
+bdd6892 feat: auto-seed Quran data on startup if quran_ayahs table is empty
+205ceeb fix: replace fullwidth plus with plain + on nav add button
+88f8b2e fix: exclude backend/node_modules from Docker build context (was overwriting Linux binary with Windows one)
+452a33a fix: use npm_config_build_from_source=true to compile better-sqlite3 from source
+dd50693 fix: switch to node:20-slim, explicit linux/amd64 platform for better-sqlite3
+bd0b55f fix: Dockerfile add Alpine build tools for better-sqlite3
+cdcfeeb fix: fly.toml app name, Dockerfile alpine build tools, auto-stop machines
+eac2b9d feat: Fly.io deployment config — Dockerfile, fly.toml, persistent volume
+6af9b2f chore: untrack junk files, add to .gitignore
+62e2bf1 feat: add @fastify/rate-limit — 60/min global, 10/min on add+search
+ce88c68 feat: dashboard friendly surah names, bump SW cache to v22
+e19593c feat: mushaf-style Arabic — Scheherazade New font, larger size, centered
 ```
 
 ---
@@ -148,14 +180,11 @@ None — working tree is clean.
 
 | Item | Priority | Notes |
 |------|----------|-------|
-| Dashboard item labels | Medium | Shows raw `surah-1-ayat-1-7` instead of "Al-Fatiha · 1–7". Queue view already has friendly names — same parsing logic needs applying to dashboard `.item-row` labels |
-| Rate limiting | Medium | No `@fastify/rate-limit` yet — DoS risk on search/add. Add `app.register(rateLimit, { max: 60, timeWindow: '1 minute' })` |
 | `og-image.png` (1200×630px) | Medium | Referenced in OG/Twitter meta tags but file missing |
-| Production deployment | Medium | No Vercel/deployment config. Domain `retainflow.app` still in meta tags — update to muraja'ah domain when ready |
+| Custom domain | Medium | Currently on `amir-buoyant-coral-631.fly.dev` — rename app or add custom domain when ready. Meta tags still reference `retainflow.app` |
 | Auth on GET user endpoints | Low | `/api/items/:userId` + `/api/stats/:userId` return data to any caller who knows a userId — acceptable for anonymous model but documented risk |
 | Upgrade flow | Low | `alert('Upgrade coming soon!')` placeholder in `app.js` |
 | `sitemap.xml` | Low | `robots.txt` references it but file missing |
-| Clean up committed junk | Low | `.superpowers/` brainstorm artifacts, `New Text Document.txt`, `server_output.txt`, `server_error.txt` are committed — add to `.gitignore` and remove |
 
 ---
 
@@ -165,4 +194,7 @@ None — working tree is clean.
 - **Composite PK**: `PRIMARY KEY (user_id, item_id)` so multiple profiles can independently track the same surah.
 - **PRAGMA user_version**: Migration gates are O(1) version checks, not `PRAGMA table_info` on every startup.
 - **SW + no-cache**: Service worker caches shell. Server sends `no-cache` for JS/CSS so SW always fetches fresh on install. Fonts/images keep `max-age=86400`.
-- **iOS**: `generateUUID()` polyfill for <15.4; `cursor: pointer` required on all interactive elements inside `-webkit-overflow-scrolling: touch` containers or iOS drops click events silently.
+- **iOS**: `generateUUID()` polyfill for <15.4; `cursor: pointer` required on all interactive elements inside `-webkit-overflow-scrolling: touch` containers; `touch-action: manipulation` on nav tabs.
+- **Script placement**: `app.js` must come after `<nav id="bottom-nav">` in the HTML — if placed before, the nav buttons have no listeners at init time.
+- **Docker + better-sqlite3**: `**/node_modules` in `.dockerignore` is critical — without it, Windows-compiled `.node` binary overwrites the Linux one built during `npm ci`.
+- **Fly.io auto-seed**: `seedQuranIfEmpty()` in `initDb()` seeds 6236 ayahs on first boot. Idempotent — checks count before inserting.
