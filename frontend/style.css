@@ -570,15 +570,10 @@ h2 { font-size: 1.35rem; margin-bottom: .35rem; }
 .notif-status { font-size: .75rem; color: var(--sub); margin-top: .4rem; min-height: 1em; }
 
 /* ── Arabic font ──────────────────────────────────────────────────────────── */
-.ar-line,
 .result-arabic,
 .range-preview { font-family: 'Scheherazade New', Georgia, serif; }
 
 /* ── Word-level Arabic display ────────────────────────────────────────────── */
-.ayah-block { margin-bottom: .75rem; }
-.ayah-block:last-child { margin-bottom: 0; }
-.ar-line { direction: rtl; text-align: center; line-height: 2.2; font-size: 2rem; color: var(--text); display: flex; flex-wrap: wrap; justify-content: center; gap: .2em; }
-
 .ar-flow {
   direction: rtl;
   text-align: right;
@@ -596,6 +591,8 @@ h2 { font-size: 1.35rem; margin-bottom: .35rem; }
 
 .ar-flow .ar-placeholder {
   display: inline-block;
+  width: 2.5em;
+  height: 1.1em;
 }
 
 .ayah-marker {
