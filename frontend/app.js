@@ -1415,6 +1415,7 @@ async function addJuzItems(juzNum, chunkSize) {
     added++;
   }
 
+  if (added > 0) localStorage.setItem('rf_has_items', 'true');
   statusEl.textContent = `✓ ${added} item${added !== 1 ? 's' : ''} added to your queue`;
   await loadDashboard();
 }
