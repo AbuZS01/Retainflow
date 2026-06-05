@@ -8,6 +8,11 @@ import {
   getDueItems,
   updateItem,
   deleteItem,
+  renameItem,
+  undoReview,
+  snoozeItem,
+  logReview,
+  getReviewLog,
   type Db,
 } from '../src/database.js';
 
@@ -159,5 +164,64 @@ describe('getItem', () => {
 
   it('returns null for unknown item', () => {
     expect(getItem(db, 'user-getitem', 'ghost')).toBeNull();
+  });
+});
+
+describe('renameItem', () => {
+  it('preserves SM-2 state while changing item_id and content', () => {
+    const db = initDb(':memory:');
+    createUser(db, 'u-rename');
+    addItem(db, 'u-rename', 'surah-1-ayat-1-7', 'old content', { interval: 5, ease_factor: 2.1, repetitions: 3 });
+    renameItem(db, 'u-rename', 'surah-1-ayat-1-7', 'surah-1-ayat-1-10', 'new content');
+    const old = getItem(db, 'u-rename', 'surah-1-ayat-1-7');
+    const updated = getItem(db, 'u-rename', 'surah-1-ayat-1-10');
+    expect(old).toBeNull();
+    expect(updated?.interval).toBe(5);
+    expect(updated?.ease_factor).toBeCloseTo(2.1);
+    expect(updated?.repetitions).toBe(3);
+    expect(updated?.content).toBe('new content');
+  });
+
+  it('throws ITEM_NOT_FOUND for unknown item', () => {
+    const db = initDb(':memory:');
+    createUser(db, 'u-rename2');
+    expect(() => renameItem(db, 'u-rename2', 'nope', 'new', '')).toThrow('ITEM_NOT_FOUND');
+  });
+
+  it('throws DUPLICATE_ITEM if new id already exists', () => {
+    const db = initDb(':memory:');
+    createUser(db, 'u-rename3');
+    addItem(db, 'u-rename3', 'item-a', '');
+    addItem(db, 'u-rename3', 'item-b', '');
+    expect(() => renameItem(db, 'u-rename3', 'item-a', 'item-b', '')).toThrow('DUPLICATE_ITEM');
+  });
+});
+
+describe('undoReview', () => {
+  it('restores SM-2 state and removes last log entry', () => {
+    const db = initDb(':memory:');
+    createUser(db, 'u-undo');
+    addItem(db, 'u-undo', 'item-1', '', { interval: 1, ease_factor: 2.5, repetitions: 0 });
+    const prev = { interval: 1, ease_factor: 2.5, repetitions: 0, next_due_date: Date.now() };
+    logReview(db, 'item-1', 'u-undo', 'good');
+    updateItem(db, 'u-undo', 'item-1', { interval: 6, ease_factor: 2.5, repetitions: 1, next_due_date: Date.now() + 6 * 86_400_000 });
+    undoReview(db, 'u-undo', 'item-1', prev);
+    const restored = getItem(db, 'u-undo', 'item-1');
+    expect(restored?.interval).toBe(1);
+    expect(restored?.repetitions).toBe(0);
+    const log = getReviewLog(db, 'u-undo', 10);
+    expect(log.length).toBe(0);
+  });
+});
+
+describe('snoozeItem with days', () => {
+  it('snoozes by the given number of days', () => {
+    const db = initDb(':memory:');
+    createUser(db, 'u-snooze2');
+    addItem(db, 'u-snooze2', 'item-snz', '');
+    const before = Date.now();
+    snoozeItem(db, 'u-snooze2', 'item-snz', 7);
+    const item = getItem(db, 'u-snooze2', 'item-snz');
+    expect(item!.next_due_date).toBeGreaterThanOrEqual(before + 7 * 86_400_000 - 100);
   });
 });

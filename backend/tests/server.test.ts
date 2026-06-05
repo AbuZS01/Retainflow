@@ -150,3 +150,75 @@ describe('DELETE /api/items/:itemId', () => {
     expect(JSON.parse(res.body)).toEqual({ ok: true });
   });
 });
+
+describe('PUT /api/items/:itemId/range', () => {
+  it('renames item and returns new item_id', async () => {
+    await app.inject({ method: 'POST', url: '/api/users', payload: { user_id: 'u-editrange' } });
+    await app.inject({ method: 'POST', url: '/api/items', payload: { user_id: 'u-editrange', item_id: 'surah-1-ayat-1-3' } });
+    const res = await app.inject({
+      method: 'PUT',
+      url: '/api/items/surah-1-ayat-1-3/range',
+      payload: { user_id: 'u-editrange', surah: 1, from: 1, to: 5 },
+    });
+    expect(res.statusCode).toBe(200);
+    expect(JSON.parse(res.body).item_id).toBe('surah-1-ayat-1-5');
+  });
+
+  it('returns 400 for invalid range (to < from)', async () => {
+    await app.inject({ method: 'POST', url: '/api/users', payload: { user_id: 'u-editrange2' } });
+    await app.inject({ method: 'POST', url: '/api/items', payload: { user_id: 'u-editrange2', item_id: 'surah-1-ayat-1-3' } });
+    const res = await app.inject({
+      method: 'PUT',
+      url: '/api/items/surah-1-ayat-1-3/range',
+      payload: { user_id: 'u-editrange2', surah: 1, from: 5, to: 3 },
+    });
+    expect(res.statusCode).toBe(400);
+  });
+});
+
+describe('PUT /api/items/:itemId/undo-review', () => {
+  it('restores item state', async () => {
+    await app.inject({ method: 'POST', url: '/api/users', payload: { user_id: 'u-undo2' } });
+    await app.inject({ method: 'POST', url: '/api/items', payload: { user_id: 'u-undo2', item_id: 'surah-2-ayat-1-5' } });
+    await app.inject({ method: 'PUT', url: '/api/items/surah-2-ayat-1-5/review', payload: { user_id: 'u-undo2', quality: 'easy' } });
+    const res = await app.inject({
+      method: 'PUT',
+      url: '/api/items/surah-2-ayat-1-5/undo-review',
+      payload: { user_id: 'u-undo2', prev_state: { interval: 1, ease_factor: 2.5, repetitions: 0, next_due_date: 0 } },
+    });
+    expect(res.statusCode).toBe(200);
+  });
+
+  it('returns 400 if prev_state missing', async () => {
+    const res = await app.inject({
+      method: 'PUT',
+      url: '/api/items/surah-2-ayat-1-5/undo-review',
+      payload: { user_id: 'u-undo2' },
+    });
+    expect(res.statusCode).toBe(400);
+  });
+});
+
+describe('PUT /api/items/:itemId/snooze with days', () => {
+  it('accepts days=7', async () => {
+    await app.inject({ method: 'POST', url: '/api/users', payload: { user_id: 'u-snoozedays' } });
+    await app.inject({ method: 'POST', url: '/api/items', payload: { user_id: 'u-snoozedays', item_id: 'surah-3-ayat-1-5' } });
+    const res = await app.inject({
+      method: 'PUT',
+      url: '/api/items/surah-3-ayat-1-5/snooze',
+      payload: { user_id: 'u-snoozedays', days: 7 },
+    });
+    expect(res.statusCode).toBe(200);
+  });
+
+  it('returns 400 for invalid days value (5)', async () => {
+    await app.inject({ method: 'POST', url: '/api/users', payload: { user_id: 'u-snoozedays2' } });
+    await app.inject({ method: 'POST', url: '/api/items', payload: { user_id: 'u-snoozedays2', item_id: 'surah-4-ayat-1-5' } });
+    const res = await app.inject({
+      method: 'PUT',
+      url: '/api/items/surah-4-ayat-1-5/snooze',
+      payload: { user_id: 'u-snoozedays2', days: 5 },
+    });
+    expect(res.statusCode).toBe(400);
+  });
+});
