@@ -692,6 +692,8 @@ h2 { font-size: 1.35rem; margin-bottom: .35rem; }
   line-height: 2.2;
   color: var(--text);
   margin-bottom: 0.5rem;
+  overflow-wrap: break-word;
+  word-break: break-word;
 }
 
 .ar-flow .ar-word {

@@ -268,6 +268,7 @@ function renderWordLevel(rawContent) {
         if (isFirstOnly && wordCount > 0) span.classList.add('ar-faded');
         span.textContent = word;
         flowDiv.appendChild(span);
+        flowDiv.appendChild(document.createTextNode(' '));
       }
       wordCount++;
     });
