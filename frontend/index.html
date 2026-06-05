@@ -436,12 +436,6 @@
 
   </div><!-- /#app -->
 
-  <script src="app.js"></script>
-  <script>
-    if ('serviceWorker' in navigator) {
-      navigator.serviceWorker.register('/sw.js');
-    }
-  </script>
   <!-- Bottom navigation bar — hidden on review and landing -->
   <nav id="bottom-nav" class="bottom-nav" aria-label="Main navigation">
     <button class="nav-tab active" data-action="home" aria-label="Home">
@@ -464,5 +458,11 @@
       <span class="nav-label">Profile</span>
     </button>
   </nav>
+  <script src="app.js"></script>
+  <script>
+    if ('serviceWorker' in navigator) {
+      navigator.serviceWorker.register('/sw.js');
+    }
+  </script>
 </body>
 </html>
