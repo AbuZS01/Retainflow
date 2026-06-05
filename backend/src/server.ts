@@ -224,7 +224,7 @@ export function buildApp(dbPath: string): FastifyInstance {
         "style-src 'self' https://fonts.googleapis.com 'unsafe-inline'; " +
         "font-src 'self' https://fonts.gstatic.com; " +
         "media-src https://everyayah.com; " +
-        "img-src 'self' data:; " +
+        "img-src 'self' data: https://api.qrserver.com; " +
         "connect-src 'self'; " +
         "frame-ancestors 'none';"
       );

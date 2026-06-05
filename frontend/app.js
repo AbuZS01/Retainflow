@@ -277,6 +277,19 @@ function renderWordLevel(rawContent) {
       const marker = document.createElement('span');
       marker.className = 'ayah-marker';
       marker.textContent = '۝' + toArabicNumeral(ayahNum);
+      const ayahIdx = audioState.ayahs.indexOf(ayahNum);
+      if (ayahIdx !== -1) {
+        marker.classList.add('ayah-marker--tappable');
+        marker.addEventListener('click', (e) => {
+          e.stopPropagation();
+          const menu = document.getElementById('ayah-menu');
+          if (!menu.classList.contains('hidden') && menu.dataset.ayahIdx === String(ayahIdx)) {
+            hideAyahMenu();
+          } else {
+            showAyahMenu(ayahIdx, marker);
+          }
+        });
+      }
       flowDiv.appendChild(marker);
     }
   });
@@ -805,13 +818,14 @@ function getLoopMode() {
 }
 
 let audioState = {
-  audio:      null,
-  surah:      0,
-  ayahs:      [],   // ordered list of ayah numbers to play
-  currentIdx: 0,
-  playing:    false,
-  loopMode:   getLoopMode(),
-  loopsDone:  0,
+  audio:          null,
+  surah:          0,
+  ayahs:          [],   // ordered list of ayah numbers to play
+  currentIdx:     0,
+  playing:        false,
+  loopMode:       getLoopMode(),
+  loopsDone:      0,
+  singleAyahMode: false,
 };
 
 function pad3(n) { return String(n).padStart(3, '0'); }
@@ -833,6 +847,25 @@ function parseItemAyahs(itemId) {
   const ayahs = [];
   for (let i = from; i <= to; i++) ayahs.push(i);
   return { surah, ayahs };
+}
+
+function hideAyahMenu() {
+  const menu = document.getElementById('ayah-menu');
+  menu.classList.add('hidden');
+  menu.removeAttribute('data-ayah-idx');
+}
+
+function showAyahMenu(ayahIdx, markerEl) {
+  const menu  = document.getElementById('ayah-menu');
+  menu.dataset.ayahIdx = String(ayahIdx);
+  const rect  = markerEl.getBoundingClientRect();
+  const menuW = 180;
+  const scrollY = window.scrollY || document.documentElement.scrollTop;
+  let left = rect.left - menuW / 2 + rect.width / 2;
+  left = Math.max(8, Math.min(left, window.innerWidth - menuW - 8));
+  menu.style.top  = `${rect.bottom + scrollY + 6}px`;
+  menu.style.left = `${left}px`;
+  menu.classList.remove('hidden');
 }
 
 function updateAudioUI() {
@@ -888,8 +921,9 @@ function stopAudio() {
     audioState.audio.src = '';
     audioState.audio = null;
   }
-  audioState.loopsDone = 0;
-  audioState.playing   = false;
+  audioState.singleAyahMode = false;
+  audioState.loopsDone      = 0;
+  audioState.playing        = false;
   updateAudioUI();
 }
 
@@ -907,6 +941,13 @@ function playFromIdx(idx) {
     updateAudioUI();
   });
   audio.addEventListener('ended', () => {
+    if (audioState.singleAyahMode) {
+      audioState.singleAyahMode = false;
+      audioState.loopsDone      = 0;
+      audioState.playing        = false;
+      updateAudioUI();
+      return;
+    }
     audioState.currentIdx++;
     if (audioState.currentIdx < audioState.ayahs.length) {
       playFromIdx(audioState.currentIdx);
@@ -937,9 +978,10 @@ function initAudioForItem(itemId) {
   }
   audioState.surah      = parsed.surah;
   audioState.ayahs      = parsed.ayahs;
-  audioState.currentIdx = 0;
-  audioState.loopsDone  = 0;
-  audioState.loopMode   = getLoopMode();
+  audioState.currentIdx     = 0;
+  audioState.singleAyahMode = false;
+  audioState.loopsDone      = 0;
+  audioState.loopMode       = getLoopMode();
   playerEl.classList.remove('hidden');
   updateAudioUI();
 }
@@ -968,6 +1010,27 @@ document.querySelectorAll('.loop-btn').forEach(btn => {
     localStorage.setItem('rf_loop_mode', val);
     updateAudioUI();
   });
+});
+
+document.getElementById('ayah-play-from').addEventListener('click', () => {
+  const idx = parseInt(document.getElementById('ayah-menu').dataset.ayahIdx ?? '0', 10);
+  hideAyahMenu();
+  audioState.singleAyahMode = false;
+  playFromIdx(idx);
+});
+
+document.getElementById('ayah-play-one').addEventListener('click', () => {
+  const idx = parseInt(document.getElementById('ayah-menu').dataset.ayahIdx ?? '0', 10);
+  hideAyahMenu();
+  audioState.singleAyahMode = true;
+  playFromIdx(idx);
+});
+
+document.addEventListener('click', (e) => {
+  const menu = document.getElementById('ayah-menu');
+  if (!menu.classList.contains('hidden') && !menu.contains(e.target) && !e.target.closest('.ayah-marker')) {
+    hideAyahMenu();
+  }
 });
 
 function initReciterSelect() {

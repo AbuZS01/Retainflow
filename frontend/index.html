@@ -77,6 +77,18 @@
   <link rel="stylesheet" href="style.css" />
 </head>
 <body>
+  <!-- Desktop gate — visible only on non-touch wide screens via CSS -->
+  <div id="desktop-gate" aria-hidden="true">
+    <div class="dg-card">
+      <div class="dg-logo">مراجعة</div>
+      <h1 class="dg-title">muraja'ah</h1>
+      <p class="dg-sub">Quran memorisation, powered by spaced repetition.</p>
+      <p class="dg-instruction">This app is designed for mobile.<br>Scan to open on your phone:</p>
+      <img class="dg-qr" src="https://api.qrserver.com/v1/create-qr-code/?size=200x200&data=https%3A%2F%2Famir-buoyant-coral-631.fly.dev&bgcolor=fdf8e1&color=3d2700&margin=2" alt="QR code — scan to open muraja'ah on your phone" width="200" height="200" />
+      <p class="dg-url">amir-buoyant-coral-631.fly.dev</p>
+    </div>
+  </div>
+
   <div id="app">
 
     <!-- Landing Page — shown only on first visit -->
@@ -468,6 +480,11 @@
       <span class="nav-label">Profile</span>
     </button>
   </nav>
+  <!-- Ayah tap menu -->
+  <div id="ayah-menu" class="ayah-menu hidden" role="dialog" aria-label="Ayah playback options">
+    <button id="ayah-play-from" class="ayah-menu-btn">▶ Play from here</button>
+    <button id="ayah-play-one"  class="ayah-menu-btn">▶ Play this ayah</button>
+  </div>
   <script src="app.js"></script>
   <script>
     if ('serviceWorker' in navigator) {

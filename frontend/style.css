@@ -1,4 +1,4 @@
-/* Service worker cache: retainflow-v25 */
+/* Service worker cache: retainflow-v27 */
 
 *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 
@@ -949,3 +949,28 @@ h2 { font-size: 1.35rem; margin-bottom: .35rem; }
   border-top: 1px solid var(--border);
   margin-top: .5rem;
 }
+
+/* ── Desktop gate ─────────────────────────────────────────────────────────── */
+#desktop-gate { display: none; }
+
+@media (min-width: 768px) and (pointer: fine) {
+  #desktop-gate { display: flex; align-items: center; justify-content: center; min-height: 100vh; background: var(--bg); }
+  #app, #bottom-nav { display: none !important; }
+}
+
+.dg-card { text-align: center; padding: 2.5rem 2rem; max-width: 380px; }
+.dg-logo { font-family: 'Scheherazade New', Georgia, serif; font-size: 3rem; color: var(--accent); margin-bottom: .25rem; }
+.dg-title { font-family: 'Cormorant Garamond', Georgia, serif; font-size: 2rem; font-weight: 600; color: var(--text); margin: 0 0 .4rem; }
+.dg-sub { font-size: 1rem; color: var(--sub); margin: 0 0 1.5rem; }
+.dg-instruction { font-size: .9rem; color: var(--sub); margin-bottom: 1.25rem; line-height: 1.5; }
+.dg-qr { display: block; margin: 0 auto 1rem; border-radius: 8px; border: 2px solid var(--border); }
+.dg-url { font-size: .8rem; color: var(--sub); letter-spacing: .02em; }
+
+/* ── Ayah tap menu ────────────────────────────────────────────────────────── */
+.ayah-marker--tappable { cursor: pointer; padding: .1em .2em; border-radius: 4px; transition: background .15s; }
+.ayah-marker--tappable:hover, .ayah-marker--tappable:active { background: var(--accent); color: #fff; }
+
+.ayah-menu { position: absolute; z-index: 200; background: var(--card-bg, #fff); border: 1px solid var(--border); border-radius: 10px; box-shadow: 0 4px 20px rgba(0,0,0,.15); padding: .3rem; display: flex; flex-direction: column; gap: .15rem; min-width: 175px; }
+.ayah-menu.hidden { display: none; }
+.ayah-menu-btn { text-align: left; background: transparent; border: none; padding: .55rem .75rem; font-size: .9rem; color: var(--text); border-radius: 7px; cursor: pointer; width: 100%; }
+.ayah-menu-btn:hover, .ayah-menu-btn:active { background: var(--bg); }
