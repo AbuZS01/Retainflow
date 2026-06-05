@@ -6,7 +6,7 @@ import fastifyCompress from '@fastify/compress';
 import rateLimit from '@fastify/rate-limit';
 import { fileURLToPath } from 'url';
 import path from 'path';
-import { initDb, createUser, addItem, getDueItems, getAllItems, getItem, updateItem, deleteItem, searchAyahs, getAyahRange, logReview, getReviewLog, getStats, updateNotes, snoozeItem } from './database.js';
+import { initDb, createUser, addItem, getDueItems, getAllItems, getItem, updateItem, deleteItem, renameItem, searchAyahs, getAyahRange, logReview, getReviewLog, getStats, updateNotes, snoozeItem, undoReview } from './database.js';
 import { applyReview, type ReviewQuality } from './engine.js';
 
 const VALID_QUALITIES = new Set<string>(['forgot', 'hard', 'good', 'easy']);

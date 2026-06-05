@@ -240,6 +240,26 @@ export function deleteItem(db: Db, userId: string, itemId: string): void {
   if (changes === 0) throw new Error(`ITEM_NOT_FOUND: ${itemId}`);
 }
 
+export function renameItem(
+  db: Db,
+  userId: string,
+  oldItemId: string,
+  newItemId: string,
+  newContent: string
+): void {
+  if (oldItemId === newItemId) return;
+  const old = getItem(db, userId, oldItemId);
+  if (!old) throw new Error(`ITEM_NOT_FOUND: ${oldItemId}`);
+  if (getItem(db, userId, newItemId)) throw new Error('DUPLICATE_ITEM');
+  db.transaction(() => {
+    db.prepare(
+      `INSERT INTO items (user_id, item_id, content, notes, interval, ease_factor, repetitions, next_due_date)
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?)`
+    ).run(userId, newItemId, newContent, old.notes, old.interval, old.ease_factor, old.repetitions, old.next_due_date);
+    db.prepare('DELETE FROM items WHERE user_id = ? AND item_id = ?').run(userId, oldItemId);
+  })();
+}
+
 // ── Notes ───────────────────────────────────────────────────────────────────
 export function updateNotes(db: Db, userId: string, itemId: string, notes: string): void {
   const { changes } = db.prepare('UPDATE items SET notes = ? WHERE user_id = ? AND item_id = ?').run(notes, userId, itemId);
@@ -247,9 +267,9 @@ export function updateNotes(db: Db, userId: string, itemId: string, notes: strin
 }
 
 // ── Snooze ──────────────────────────────────────────────────────────────────
-export function snoozeItem(db: Db, userId: string, itemId: string): void {
-  const tomorrow = Date.now() + 86_400_000;
-  const { changes } = db.prepare('UPDATE items SET next_due_date = ? WHERE user_id = ? AND item_id = ?').run(tomorrow, userId, itemId);
+export function snoozeItem(db: Db, userId: string, itemId: string, days = 1): void {
+  const future = Date.now() + days * 86_400_000;
+  const { changes } = db.prepare('UPDATE items SET next_due_date = ? WHERE user_id = ? AND item_id = ?').run(future, userId, itemId);
   if (changes === 0) throw new Error(`ITEM_NOT_FOUND: ${itemId}`);
 }
 
@@ -265,6 +285,24 @@ export function logReview(db: Db, itemId: string, userId: string, quality: strin
   db.prepare(
     'INSERT INTO review_log (item_id, user_id, quality, reviewed_at) VALUES (?, ?, ?, ?)'
   ).run(itemId, userId, quality, Date.now());
+}
+
+export function undoReview(
+  db: Db,
+  userId: string,
+  itemId: string,
+  prevState: { interval: number; ease_factor: number; repetitions: number; next_due_date: number }
+): void {
+  const { changes } = db.prepare(
+    `UPDATE items SET interval = ?, ease_factor = ?, repetitions = ?, next_due_date = ?
+     WHERE user_id = ? AND item_id = ?`
+  ).run(prevState.interval, prevState.ease_factor, prevState.repetitions, prevState.next_due_date, userId, itemId);
+  if (changes === 0) throw new Error(`ITEM_NOT_FOUND: ${itemId}`);
+  db.prepare(
+    `DELETE FROM review_log WHERE id = (
+       SELECT id FROM review_log WHERE item_id = ? AND user_id = ? ORDER BY reviewed_at DESC LIMIT 1
+     )`
+  ).run(itemId, userId);
 }
 
 export function getReviewLog(db: Db, userId: string, limit = 100): LogRow[] {
