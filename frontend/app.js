@@ -1300,6 +1300,7 @@ function getJuzChunk() {
 }
 
 async function addJuzItems(juzNum, chunkSize) {
+  const difficulty = selectedDifficulty;
   const surahs = getSurahsInJuz(juzNum);
   const chunks = [];
   surahs.forEach(({ surah, from, to }) => {
@@ -1316,11 +1317,14 @@ async function addJuzItems(juzNum, chunkSize) {
     statusEl.textContent = `Adding item ${added + 1} of ${chunks.length}…`;
 
     const { status: rs, data: rd } = await apiFetch('GET', `/api/quran/${chunk.surah}/${chunk.from}/${chunk.to}`);
-    if (rs !== 200 || !Array.isArray(rd)) continue;
+    if (rs !== 200 || !Array.isArray(rd)) {
+      statusEl.textContent = `Network error fetching ${chunk.surah}:${chunk.from}–${chunk.to}. ${added} added so far.`;
+      return;
+    }
 
     const itemId  = `surah-${chunk.surah}-ayat-${chunk.from}-${chunk.to}`;
     const content = rd.map(a => `${a.arabic}\n${a.english}`).join('\n\n');
-    const preset  = DIFFICULTY_INITIAL[selectedDifficulty];
+    const preset  = DIFFICULTY_INITIAL[difficulty];
 
     const { status, data } = await apiFetch('POST', '/api/items', {
       user_id: state.userId,
