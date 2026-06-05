@@ -191,7 +191,7 @@ export function addItem(
         .prepare('SELECT COUNT(*) as cnt FROM items WHERE user_id = ?')
         .get(userId) as { cnt: number }
     ).cnt;
-    if (count >= 5) {
+    if (count >= 50) {
       throw new Error('LIMIT_REACHED');
     }
   }

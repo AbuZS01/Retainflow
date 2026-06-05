@@ -36,36 +36,35 @@ describe('createUser / getUser', () => {
 });
 
 describe('addItem — freemium tier limit', () => {
-  it('allows adding up to 3 items for free user', () => {
+  it('allows adding the 50th item for a free user', () => {
     createUser(db, 'user-free');
-    addItem(db, 'user-free', 'item-1');
-    addItem(db, 'user-free', 'item-2');
-    addItem(db, 'user-free', 'item-3');
-    addItem(db, 'user-free', 'item-4');
-    addItem(db, 'user-free', 'item-5');
-    const items = getDueItems(db, 'user-free');
-    expect(items.length).toBe(5);
+    // Insert 49 items directly to keep the test fast
+    for (let i = 1; i <= 49; i++) {
+      db.prepare(
+        `INSERT INTO items (user_id, item_id, content, interval, ease_factor, repetitions, next_due_date)
+         VALUES (?, ?, '', 1, 2.5, 0, 0)`
+      ).run('user-free', `item-${i}`);
+    }
+    expect(() => addItem(db, 'user-free', 'item-50')).not.toThrow();
   });
 
-  it('blocks 6th item for free user with LIMIT_REACHED error', () => {
+  it('blocks the 51st item for a free user with LIMIT_REACHED', () => {
     createUser(db, 'user-free2');
-    addItem(db, 'user-free2', 'item-a');
-    addItem(db, 'user-free2', 'item-b');
-    addItem(db, 'user-free2', 'item-c');
-    addItem(db, 'user-free2', 'item-d');
-    addItem(db, 'user-free2', 'item-e');
-    expect(() => addItem(db, 'user-free2', 'item-f')).toThrow('LIMIT_REACHED');
+    for (let i = 1; i <= 50; i++) {
+      db.prepare(
+        `INSERT INTO items (user_id, item_id, content, interval, ease_factor, repetitions, next_due_date)
+         VALUES (?, ?, '', 1, 2.5, 0, 0)`
+      ).run('user-free2', `item-${i}`);
+    }
+    expect(() => addItem(db, 'user-free2', 'item-51')).toThrow('LIMIT_REACHED');
   });
 
-  it('allows more than 3 items for premium user', () => {
-    createUser(db, 'user-premium');
-    db.prepare("UPDATE users SET is_premium = 1 WHERE user_id = 'user-premium'").run();
-    addItem(db, 'user-premium', 'item-1');
-    addItem(db, 'user-premium', 'item-2');
-    addItem(db, 'user-premium', 'item-3');
-    addItem(db, 'user-premium', 'item-4');
-    const items = getDueItems(db, 'user-premium');
-    expect(items.length).toBe(4);
+  it('allows more than 50 items for a premium user', () => {
+    createUser(db, 'user-prem');
+    db.prepare(`UPDATE users SET is_premium = 1 WHERE user_id = ?`).run('user-prem');
+    for (let i = 1; i <= 51; i++) {
+      expect(() => addItem(db, 'user-prem', `item-${i}`)).not.toThrow();
+    }
   });
 });
 

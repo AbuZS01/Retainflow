@@ -97,7 +97,7 @@ export function buildApp(dbPath: string): FastifyInstance {
       return reply.status(201).send({ ok: true, item_id });
     } catch (err: any) {
       if (err.message === 'LIMIT_REACHED')
-        return reply.status(403).send({ error: 'LIMIT_REACHED', message: 'Free tier is limited to 5 parallel tracking decks.' });
+        return reply.status(403).send({ error: 'LIMIT_REACHED', message: 'Free tier is limited to 50 parallel tracking decks.' });
       if (err.message === 'DUPLICATE_ITEM')
         return reply.status(409).send({ error: 'DUPLICATE_ITEM', message: 'This range is already in your queue.' });
       throw err;
