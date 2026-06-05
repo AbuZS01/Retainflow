@@ -1,4 +1,4 @@
-/* Service worker cache: retainflow-v28 */
+/* Service worker cache: retainflow-v29 */
 
 *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 
@@ -703,8 +703,11 @@ h2 { font-size: 1.35rem; margin-bottom: .35rem; }
   border-radius: 16px 16px 0 0;
   box-shadow: 0 -4px 24px rgba(0,0,0,0.12);
   padding: 0.5rem 1rem calc(0.75rem + env(safe-area-inset-bottom));
+  transition: transform 0.28s ease, opacity 0.28s ease;
+  touch-action: pan-x;
 }
 .playback-sheet.hidden { display: none; }
+.playback-sheet.sheet-dismissed { transform: translateY(110%); opacity: 0; }
 .ps-pill { width: 36px; height: 4px; background: var(--border); border-radius: 2px; margin: 0 auto 0.6rem; }
 .ps-top-row { display: flex; align-items: center; justify-content: space-between; margin-bottom: 0.4rem; gap: 0.5rem; }
 .ps-ayah-label { font-size: 0.78rem; color: var(--sub); flex: 1; }

@@ -278,6 +278,7 @@ function renderWordLevel(rawContent) {
           span.classList.add('ar-word--tappable');
           span.addEventListener('click', () => {
             audioState.singleAyahMode = false;
+            showPlaybackSheet();
             playFromIdx(ayahIdx);
           });
         }
@@ -1017,6 +1018,45 @@ document.querySelectorAll('.loop-btn').forEach(btn => {
     updateAudioUI();
   });
 });
+
+// ── Playback sheet swipe-to-dismiss ───────────────────────────────────────
+(function () {
+  const sheet = document.getElementById('playback-sheet');
+  let startY = 0, dragging = false;
+
+  sheet.addEventListener('touchstart', (e) => {
+    startY    = e.touches[0].clientY;
+    dragging  = true;
+    sheet.style.transition = 'none';
+  }, { passive: true });
+
+  sheet.addEventListener('touchmove', (e) => {
+    if (!dragging) return;
+    const dy = e.touches[0].clientY - startY;
+    if (dy > 0) sheet.style.transform = `translateY(${dy}px)`;
+  }, { passive: true });
+
+  sheet.addEventListener('touchend', (e) => {
+    if (!dragging) return;
+    dragging = false;
+    sheet.style.transition = '';
+    const dy = e.changedTouches[0].clientY - startY;
+    if (dy > 80) {
+      // Dismissed — slide out then mark as dismissed (audio keeps playing)
+      sheet.classList.add('sheet-dismissed');
+      sheet.style.transform = '';
+    } else {
+      // Snap back
+      sheet.style.transform = '';
+    }
+  }, { passive: true });
+})();
+
+function showPlaybackSheet() {
+  const sheet = document.getElementById('playback-sheet');
+  sheet.classList.remove('hidden', 'sheet-dismissed');
+  sheet.style.transform = '';
+}
 
 // ── Playback sheet buttons ─────────────────────────────────────────────────
 document.getElementById('ps-prev').addEventListener('click', () => {
