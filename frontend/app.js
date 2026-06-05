@@ -247,15 +247,21 @@ function renderWordLevel(rawContent) {
   const startAyah = getStartAyah(state.reviewItem?.item_id);
   const blocks    = rawContent.split('\n\n').filter(b => b.trim());
 
-  // Single flowing Arabic paragraph
-  const flowDiv = document.createElement('div');
-  flowDiv.className = 'ar-flow';
-
   let wordCount = 0;
   blocks.forEach((block, blockIdx) => {
     const lines   = block.split('\n');
     const arabic  = lines[0] || '';
+    const english = lines.slice(1).join(' ');
     const ayahNum = startAyah + blockIdx;
+    const ayahIdx = audioState.ayahs.indexOf(ayahNum);
+
+    // Wrapper section per ayah — used for highlight
+    const section = document.createElement('div');
+    section.className = 'ayah-section';
+    section.dataset.ayahNum = String(ayahNum);
+
+    const flowDiv = document.createElement('div');
+    flowDiv.className = 'ar-flow';
 
     arabic.split(/\s+/).filter(w => w).forEach(word => {
       if (isHidden) {
@@ -267,6 +273,14 @@ function renderWordLevel(rawContent) {
         span.className = 'ar-word';
         if (isFirstOnly && wordCount > 0) span.classList.add('ar-faded');
         span.textContent = word;
+        // Tap word → play from this ayah
+        if (ayahIdx !== -1) {
+          span.classList.add('ar-word--tappable');
+          span.addEventListener('click', () => {
+            audioState.singleAyahMode = false;
+            playFromIdx(ayahIdx);
+          });
+        }
         flowDiv.appendChild(span);
         flowDiv.appendChild(document.createTextNode(' '));
       }
@@ -277,37 +291,21 @@ function renderWordLevel(rawContent) {
       const marker = document.createElement('span');
       marker.className = 'ayah-marker';
       marker.textContent = '۝' + toArabicNumeral(ayahNum);
-      const ayahIdx = audioState.ayahs.indexOf(ayahNum);
-      if (ayahIdx !== -1) {
-        marker.classList.add('ayah-marker--tappable');
-        marker.addEventListener('click', (e) => {
-          e.stopPropagation();
-          const menu = document.getElementById('ayah-menu');
-          if (!menu.classList.contains('hidden') && menu.dataset.ayahIdx === String(ayahIdx)) {
-            hideAyahMenu();
-          } else {
-            showAyahMenu(ayahIdx, marker);
-          }
-        });
-      }
       flowDiv.appendChild(marker);
     }
+
+    section.appendChild(flowDiv);
+
+    // English inline after each ayah
+    if (!isHidden && showTranslation && english) {
+      const enDiv = document.createElement('div');
+      enDiv.className = 'en-verse';
+      enDiv.textContent = english;
+      section.appendChild(enDiv);
+    }
+
+    contentEl.appendChild(section);
   });
-
-  contentEl.appendChild(flowDiv);
-
-  // English translations listed below the Arabic flow
-  if (!isHidden && showTranslation) {
-    blocks.forEach((block, blockIdx) => {
-      const lines   = block.split('\n');
-      const english = lines.slice(1).join(' ');
-      if (!english) return;
-      const enLine = document.createElement('div');
-      enLine.className = 'en-line';
-      enLine.textContent = `(${startAyah + blockIdx}) ${english}`;
-      contentEl.appendChild(enLine);
-    });
-  }
 }
 
 function applyTextMode(content) {
@@ -810,6 +808,12 @@ const RECITERS = [
   { id: 'Ibrahim_Akhdar_64kbps',                 name: 'Sheikh Ibrahim al-Akhdar'},
 ];
 
+function fmtTime(s) {
+  if (!isFinite(s)) return '0:00';
+  const m = Math.floor(s / 60);
+  return m + ':' + String(Math.floor(s % 60)).padStart(2, '0');
+}
+
 function getLoopMode() {
   const saved = localStorage.getItem('rf_loop_mode');
   if (saved === 'Infinity') return Infinity;
@@ -849,29 +853,18 @@ function parseItemAyahs(itemId) {
   return { surah, ayahs };
 }
 
-function hideAyahMenu() {
-  const menu = document.getElementById('ayah-menu');
-  menu.classList.add('hidden');
-  menu.removeAttribute('data-ayah-idx');
-}
-
-function showAyahMenu(ayahIdx, markerEl) {
-  const menu  = document.getElementById('ayah-menu');
-  menu.dataset.ayahIdx = String(ayahIdx);
-  const rect  = markerEl.getBoundingClientRect();
-  const menuW = 180;
-  const scrollY = window.scrollY || document.documentElement.scrollTop;
-  let left = rect.left - menuW / 2 + rect.width / 2;
-  left = Math.max(8, Math.min(left, window.innerWidth - menuW - 8));
-  menu.style.top  = `${rect.bottom + scrollY + 6}px`;
-  menu.style.left = `${left}px`;
-  menu.classList.remove('hidden');
-}
-
 function updateAudioUI() {
   const btn   = document.getElementById('audio-play-btn');
   const label = document.getElementById('audio-ayah-label');
   const dots  = document.getElementById('loop-dots');
+
+  // Highlight the currently playing ayah section
+  const playingAyah = audioState.playing && audioState.ayahs.length
+    ? audioState.ayahs[Math.min(audioState.currentIdx, audioState.ayahs.length - 1)]
+    : null;
+  document.querySelectorAll('.ayah-section').forEach(s => {
+    s.classList.toggle('ayah-section--playing', s.dataset.ayahNum === String(playingAyah));
+  });
 
   btn.textContent = audioState.playing ? '⏸' : '▶';
   btn.setAttribute('aria-label', audioState.playing ? 'Pause audio' : 'Play audio');
@@ -924,6 +917,12 @@ function stopAudio() {
   audioState.singleAyahMode = false;
   audioState.loopsDone      = 0;
   audioState.playing        = false;
+  const fill = document.getElementById('ps-fill');
+  if (fill) fill.style.width = '0%';
+  const cur = document.getElementById('ps-time-cur');
+  const rem = document.getElementById('ps-time-rem');
+  if (cur) cur.textContent = '0:00';
+  if (rem) rem.textContent = '0:00';
   updateAudioUI();
 }
 
@@ -939,6 +938,16 @@ function playFromIdx(idx) {
   audio.play().catch(() => {
     audioState.playing = false;
     updateAudioUI();
+  });
+  audio.addEventListener('timeupdate', () => {
+    if (!audio.duration) return;
+    const pct = (audio.currentTime / audio.duration) * 100;
+    const fill = document.getElementById('ps-fill');
+    if (fill) fill.style.width = pct + '%';
+    const cur = document.getElementById('ps-time-cur');
+    const rem = document.getElementById('ps-time-rem');
+    if (cur) cur.textContent = fmtTime(audio.currentTime);
+    if (rem) rem.textContent = '-' + fmtTime(audio.duration - audio.currentTime);
   });
   audio.addEventListener('ended', () => {
     if (audioState.singleAyahMode) {
@@ -971,18 +980,15 @@ function playFromIdx(idx) {
 function initAudioForItem(itemId) {
   stopAudio();
   const parsed = parseItemAyahs(itemId);
-  const playerEl = document.getElementById('audio-player');
-  if (!parsed) {
-    playerEl.classList.add('hidden');
-    return;
-  }
-  audioState.surah      = parsed.surah;
-  audioState.ayahs      = parsed.ayahs;
+  const sheet = document.getElementById('playback-sheet');
+  if (!parsed) { sheet.classList.add('hidden'); return; }
+  audioState.surah          = parsed.surah;
+  audioState.ayahs          = parsed.ayahs;
   audioState.currentIdx     = 0;
   audioState.singleAyahMode = false;
   audioState.loopsDone      = 0;
   audioState.loopMode       = getLoopMode();
-  playerEl.classList.remove('hidden');
+  sheet.classList.remove('hidden');
   updateAudioUI();
 }
 
@@ -1012,25 +1018,37 @@ document.querySelectorAll('.loop-btn').forEach(btn => {
   });
 });
 
-document.getElementById('ayah-play-from').addEventListener('click', () => {
-  const idx = parseInt(document.getElementById('ayah-menu').dataset.ayahIdx ?? '0', 10);
-  hideAyahMenu();
-  audioState.singleAyahMode = false;
-  playFromIdx(idx);
+// ── Playback sheet buttons ─────────────────────────────────────────────────
+document.getElementById('ps-prev').addEventListener('click', () => {
+  if (audioState.currentIdx > 0) playFromIdx(audioState.currentIdx - 1);
+  else playFromIdx(0);
 });
 
-document.getElementById('ayah-play-one').addEventListener('click', () => {
-  const idx = parseInt(document.getElementById('ayah-menu').dataset.ayahIdx ?? '0', 10);
-  hideAyahMenu();
-  audioState.singleAyahMode = true;
-  playFromIdx(idx);
+document.getElementById('ps-replay').addEventListener('click', () => {
+  playFromIdx(audioState.currentIdx);
 });
 
-document.addEventListener('click', (e) => {
-  const menu = document.getElementById('ayah-menu');
-  if (!menu.classList.contains('hidden') && !menu.contains(e.target) && !e.target.closest('.ayah-marker')) {
-    hideAyahMenu();
+document.getElementById('ps-next-ayah').addEventListener('click', () => {
+  if (audioState.currentIdx < audioState.ayahs.length - 1) {
+    playFromIdx(audioState.currentIdx + 1);
   }
+});
+
+document.getElementById('ps-next-verse').addEventListener('click', () => {
+  // Advance to next review item in queue
+  stopAudio();
+  const nextIdx = state.sessionDone;
+  if (nextIdx < state.dueItems.length) {
+    startReview(state.dueItems[nextIdx]);
+  }
+});
+
+document.getElementById('ps-track').addEventListener('click', (e) => {
+  const audio = audioState.audio;
+  if (!audio || !audio.duration) return;
+  const rect = e.currentTarget.getBoundingClientRect();
+  const pct  = (e.clientX - rect.left) / rect.width;
+  audio.currentTime = pct * audio.duration;
 });
 
 function initReciterSelect() {

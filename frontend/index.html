@@ -363,29 +363,6 @@
           </div>
           <div class="review-content" id="review-content"></div>
           <button id="reveal-btn" class="btn-reveal hidden">Tap to reveal</button>
-          <!-- Audio player -->
-          <div id="audio-player" class="audio-player hidden">
-            <select id="reciter-select" class="reciter-select" aria-label="Choose reciter">
-              <option value="Hudhaify_128kbps">Shaykh Ali al-Hudhayfee</option>
-              <option value="Salah_Al_Budair_128kbps">Shaykh Salah al-Budair</option>
-              <option value="Abdullaah_3awwaad_Al-Juhaynee_128kbps">Abdullāh al-Juhanī</option>
-              <option value="Ibrahim_Akhdar_64kbps">Sheikh Ibrahim al-Akhdar</option>
-            </select>
-            <div class="audio-controls">
-              <button id="audio-play-btn" class="audio-play-btn" aria-label="Play audio">▶</button>
-              <span id="audio-ayah-label" class="audio-ayah-label"></span>
-            </div>
-            <div class="loop-controls">
-              <span class="loop-label">Repeat</span>
-              <div class="loop-btns">
-                <button class="loop-btn" data-loop="1" aria-label="Play once">1×</button>
-                <button class="loop-btn" data-loop="2" aria-label="Repeat 2 times">2×</button>
-                <button class="loop-btn" data-loop="5" aria-label="Repeat 5 times">5×</button>
-                <button class="loop-btn" data-loop="Infinity" aria-label="Repeat infinitely">∞</button>
-              </div>
-              <div id="loop-dots" class="loop-dots hidden"></div>
-            </div>
-          </div>
           <a id="review-link" class="review-link" target="_blank" rel="noopener noreferrer">Open on Quran.com →</a>
         </div>
       </div>
@@ -480,10 +457,39 @@
       <span class="nav-label">Profile</span>
     </button>
   </nav>
-  <!-- Ayah tap menu -->
-  <div id="ayah-menu" class="ayah-menu hidden" role="dialog" aria-label="Ayah playback options">
-    <button id="ayah-play-from" class="ayah-menu-btn">▶ Play from here</button>
-    <button id="ayah-play-one"  class="ayah-menu-btn">▶ Play this ayah</button>
+  <!-- Playback bottom sheet — fixed, visible during review -->
+  <div id="playback-sheet" class="playback-sheet hidden" role="region" aria-label="Audio playback">
+    <div class="ps-pill"></div>
+    <div class="ps-top-row">
+      <span id="audio-ayah-label" class="ps-ayah-label"></span>
+      <select id="reciter-select" class="reciter-select" aria-label="Choose reciter">
+        <option value="Hudhaify_128kbps">Al-Hudhayfee</option>
+        <option value="Salah_Al_Budair_128kbps">Al-Budair</option>
+        <option value="Abdullaah_3awwaad_Al-Juhaynee_128kbps">Al-Juhanī</option>
+        <option value="Ibrahim_Akhdar_64kbps">Al-Akhdar</option>
+      </select>
+    </div>
+    <div class="ps-progress-row">
+      <span id="ps-time-cur" class="ps-time">0:00</span>
+      <div class="ps-track" id="ps-track"><div id="ps-fill" class="ps-fill"></div></div>
+      <span id="ps-time-rem" class="ps-time">0:00</span>
+    </div>
+    <div class="ps-controls">
+      <button id="ps-prev"       class="ps-btn" aria-label="Previous ayah">⏮</button>
+      <button id="ps-replay"     class="ps-btn" aria-label="Replay ayah">↺</button>
+      <button id="audio-play-btn" class="ps-btn ps-play" aria-label="Play audio">▶</button>
+      <button id="ps-next-ayah"  class="ps-btn" aria-label="Next ayah">⏭</button>
+      <button id="ps-next-verse" class="ps-btn ps-next-verse-btn" aria-label="Next verse">Next →</button>
+    </div>
+    <div class="ps-bottom-row">
+      <div class="loop-btns">
+        <button class="loop-btn" data-loop="1" aria-label="Play once">1×</button>
+        <button class="loop-btn" data-loop="2" aria-label="Repeat 2 times">2×</button>
+        <button class="loop-btn" data-loop="5" aria-label="Repeat 5 times">5×</button>
+        <button class="loop-btn" data-loop="Infinity" aria-label="Repeat infinitely">∞</button>
+      </div>
+      <div id="loop-dots" class="loop-dots hidden"></div>
+    </div>
   </div>
   <script src="app.js"></script>
   <script>

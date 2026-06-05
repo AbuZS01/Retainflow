@@ -1,4 +1,4 @@
-/* Service worker cache: retainflow-v27 */
+/* Service worker cache: retainflow-v28 */
 
 *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 
@@ -682,6 +682,47 @@ h2 { font-size: 1.35rem; margin-bottom: .35rem; }
 /* ── Arabic font ──────────────────────────────────────────────────────────── */
 .result-arabic,
 .range-preview { font-family: 'Scheherazade New', Georgia, serif; }
+
+/* ── Ayah sections ────────────────────────────────────────────────────────── */
+.ayah-section { margin-bottom: 0.75rem; border-radius: 8px; padding: 0.25rem 0.4rem; transition: background 0.2s; }
+.ayah-section--playing { background: rgba(122,89,0,0.08); }
+.en-verse { font-size: 0.82rem; color: var(--sub); font-style: italic; line-height: 1.5; margin-top: 0.1rem; direction: ltr; text-align: left; }
+
+/* Tappable words */
+.ar-word--tappable { cursor: pointer; border-radius: 3px; transition: background 0.12s; }
+.ar-word--tappable:hover, .ar-word--tappable:active { background: rgba(122,89,0,0.15); }
+
+/* Extra scroll padding so sheet doesn't cover content */
+.review-scroll-area { padding-bottom: 200px; }
+
+/* ── Playback bottom sheet ────────────────────────────────────────────────── */
+.playback-sheet {
+  position: fixed; bottom: 0; left: 0; right: 0; z-index: 120;
+  background: var(--card-bg, #fff);
+  border-top: 1px solid var(--border, #e8dfc0);
+  border-radius: 16px 16px 0 0;
+  box-shadow: 0 -4px 24px rgba(0,0,0,0.12);
+  padding: 0.5rem 1rem calc(0.75rem + env(safe-area-inset-bottom));
+}
+.playback-sheet.hidden { display: none; }
+.ps-pill { width: 36px; height: 4px; background: var(--border); border-radius: 2px; margin: 0 auto 0.6rem; }
+.ps-top-row { display: flex; align-items: center; justify-content: space-between; margin-bottom: 0.4rem; gap: 0.5rem; }
+.ps-ayah-label { font-size: 0.78rem; color: var(--sub); flex: 1; }
+.playback-sheet .reciter-select { font-size: 0.72rem; border: 1px solid var(--border); border-radius: 6px; padding: 0.2rem 0.4rem; background: var(--bg); color: var(--text); max-width: 130px; }
+
+.ps-progress-row { display: flex; align-items: center; gap: 0.5rem; margin-bottom: 0.5rem; }
+.ps-time { font-size: 0.7rem; color: var(--sub); white-space: nowrap; }
+.ps-track { flex: 1; height: 4px; background: var(--border); border-radius: 2px; cursor: pointer; position: relative; }
+.ps-fill  { height: 100%; width: 0%; background: var(--accent); border-radius: 2px; transition: width 0.25s linear; }
+
+.ps-controls { display: flex; align-items: center; justify-content: space-between; margin-bottom: 0.5rem; }
+.ps-btn { background: none; border: none; cursor: pointer; color: var(--text); font-size: 1.3rem; padding: 0.3rem; border-radius: 50%; transition: background 0.12s; line-height: 1; }
+.ps-btn:hover { background: var(--bg); }
+.ps-play { width: 44px; height: 44px; background: var(--accent); color: #fff; border-radius: 50%; font-size: 1.1rem; display: flex; align-items: center; justify-content: center; }
+.ps-play:hover { opacity: 0.88; background: var(--accent); }
+.ps-next-verse-btn { font-size: 0.8rem; font-weight: 600; color: var(--accent); padding: 0.3rem 0.6rem; border-radius: 14px; border: 1.5px solid var(--accent); background: transparent; cursor: pointer; white-space: nowrap; }
+
+.ps-bottom-row { display: flex; align-items: center; gap: 0.5rem; flex-wrap: wrap; }
 
 /* ── Word-level Arabic display ────────────────────────────────────────────── */
 .ar-flow {
