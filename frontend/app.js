@@ -796,12 +796,21 @@ const RECITERS = [
   { id: 'Ibrahim_Akhdar_64kbps',                 name: 'Sheikh Ibrahim al-Akhdar'},
 ];
 
+function getLoopMode() {
+  const saved = localStorage.getItem('rf_loop_mode');
+  if (saved === 'Infinity') return Infinity;
+  const n = parseInt(saved ?? '1', 10);
+  return isNaN(n) || n < 1 ? 1 : n;
+}
+
 let audioState = {
   audio:      null,
   surah:      0,
   ayahs:      [],   // ordered list of ayah numbers to play
   currentIdx: 0,
   playing:    false,
+  loopMode:   getLoopMode(),
+  loopsDone:  0,
 };
 
 function pad3(n) { return String(n).padStart(3, '0'); }
@@ -828,14 +837,47 @@ function parseItemAyahs(itemId) {
 function updateAudioUI() {
   const btn   = document.getElementById('audio-play-btn');
   const label = document.getElementById('audio-ayah-label');
+  const dots  = document.getElementById('loop-dots');
+
   btn.textContent = audioState.playing ? '⏸' : '▶';
   btn.setAttribute('aria-label', audioState.playing ? 'Pause audio' : 'Play audio');
+
   if (audioState.ayahs.length > 0) {
     const idx  = Math.min(audioState.currentIdx, audioState.ayahs.length - 1);
     const ayah = audioState.ayahs[idx];
-    label.textContent = `${audioState.surah}:${ayah}`;
+    if (audioState.loopMode > 1 && audioState.playing) {
+      const done  = audioState.loopsDone + 1;
+      const total = audioState.loopMode === Infinity ? '∞' : audioState.loopMode;
+      label.textContent = `${audioState.surah}:${ayah} · loop ${done}/${total}`;
+    } else {
+      label.textContent = `${audioState.surah}:${ayah}`;
+    }
   } else {
     label.textContent = '';
+  }
+
+  // Sync loop button active states
+  document.querySelectorAll('.loop-btn').forEach(b => {
+    const val    = b.dataset.loop;
+    const active = val === 'Infinity'
+      ? audioState.loopMode === Infinity
+      : parseInt(val, 10) === audioState.loopMode;
+    b.classList.toggle('active', active);
+  });
+
+  // Progress dots for finite loops
+  if (dots) {
+    dots.innerHTML = '';
+    if (audioState.loopMode > 1 && audioState.loopMode !== Infinity) {
+      for (let i = 0; i < audioState.loopMode; i++) {
+        const dot = document.createElement('span');
+        dot.className = 'loop-dot' + (i < audioState.loopsDone ? ' done' : '');
+        dots.appendChild(dot);
+      }
+      dots.classList.remove('hidden');
+    } else {
+      dots.classList.add('hidden');
+    }
   }
 }
 
@@ -867,10 +909,18 @@ function playFromIdx(idx) {
     if (audioState.currentIdx < audioState.ayahs.length) {
       playFromIdx(audioState.currentIdx);
     } else {
-      // Finished the full range — reset to start
-      audioState.currentIdx = 0;
-      audioState.playing    = false;
-      updateAudioUI();
+      audioState.loopsDone++;
+      if (audioState.loopsDone < audioState.loopMode) {
+        // Start next loop
+        audioState.currentIdx = 0;
+        playFromIdx(0);
+      } else {
+        // All loops done — reset
+        audioState.currentIdx = 0;
+        audioState.loopsDone  = 0;
+        audioState.playing    = false;
+        updateAudioUI();
+      }
     }
   });
 }
@@ -886,6 +936,8 @@ function initAudioForItem(itemId) {
   audioState.surah      = parsed.surah;
   audioState.ayahs      = parsed.ayahs;
   audioState.currentIdx = 0;
+  audioState.loopsDone  = 0;
+  audioState.loopMode   = getLoopMode();
   playerEl.classList.remove('hidden');
   updateAudioUI();
 }
@@ -904,6 +956,16 @@ document.getElementById('reciter-select').addEventListener('change', (e) => {
     const idx = audioState.currentIdx;
     playFromIdx(idx);
   }
+});
+
+document.querySelectorAll('.loop-btn').forEach(btn => {
+  btn.addEventListener('click', () => {
+    const val = btn.dataset.loop;
+    audioState.loopMode  = val === 'Infinity' ? Infinity : parseInt(val, 10);
+    audioState.loopsDone = 0;
+    localStorage.setItem('rf_loop_mode', val);
+    updateAudioUI();
+  });
 });
 
 function initReciterSelect() {

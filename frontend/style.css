@@ -575,10 +575,67 @@ h2 { font-size: 1.35rem; margin-bottom: .35rem; }
 .log-date { font-size: .7rem; color: var(--sub); white-space: nowrap; }
 
 /* Audio player */
-.audio-player { display: flex; align-items: center; gap: .65rem; background: var(--bg); border: 1px solid var(--border); border-radius: 8px; padding: .55rem .75rem; margin: .75rem 0 .5rem; }
+.audio-player { display: flex; align-items: center; gap: .65rem; flex-wrap: wrap; background: var(--bg); border: 1px solid var(--border); border-radius: 8px; padding: .55rem .75rem; margin: .75rem 0 .5rem; }
 .reciter-select { background: var(--bg); border: 1px solid var(--border); border-radius: 6px; color: var(--text); font-size: .78rem; padding: .3rem .45rem; outline: none; cursor: pointer; flex: 1; min-width: 0; }
 .reciter-select:focus { border-color: var(--accent); }
 .audio-controls { display: flex; align-items: center; gap: .55rem; flex-shrink: 0; }
+
+.loop-controls {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+  flex-wrap: wrap;
+  margin-top: 0.4rem;
+}
+
+.loop-label {
+  font-size: 0.75rem;
+  color: var(--sub);
+  margin-right: 0.1rem;
+}
+
+.loop-btns {
+  display: flex;
+  gap: 0.3rem;
+}
+
+.loop-btn {
+  padding: 0.25rem 0.55rem;
+  border-radius: 20px;
+  border: 1.5px solid var(--accent);
+  background: transparent;
+  color: var(--accent);
+  font-size: 0.8rem;
+  font-weight: 600;
+  cursor: pointer;
+  line-height: 1;
+}
+
+.loop-btn.active {
+  background: var(--accent);
+  color: #fff;
+}
+
+.loop-dots {
+  display: flex;
+  gap: 0.3rem;
+  width: 100%;
+  padding-left: 0.1rem;
+  margin-top: 0.3rem;
+}
+
+.loop-dot {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: var(--accent);
+  opacity: 0.25;
+}
+
+.loop-dot.done {
+  opacity: 1;
+}
+
 .audio-play-btn { background: var(--accent); border: none; border-radius: 50%; color: var(--btn-text); cursor: pointer; font-size: .9rem; width: 2.75rem; height: 2.75rem; display: flex; align-items: center; justify-content: center; flex-shrink: 0; transition: opacity .15s; }
 .audio-play-btn:hover { opacity: .8; }
 .audio-play-btn:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
