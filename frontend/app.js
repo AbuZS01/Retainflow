@@ -1264,7 +1264,8 @@ async function submitReview(quality) {
   // Show undo toast
   showToast(
     `Marked ${quality} · <button id="undo-review-btn" style="background:none;border:none;color:var(--accent);cursor:pointer;font-size:inherit;padding:0;text-decoration:underline">Undo</button>`,
-    5000
+    5000,
+    { top: true }
   );
   document.getElementById('undo-review-btn')?.addEventListener('click', async () => {
     document.getElementById('app-toast')?.classList.remove('toast-show');
@@ -1563,14 +1564,14 @@ document.getElementById('resume-discard-btn').addEventListener('click', () => {
 });
 
 // ── Toast helper ───────────────────────────────────────────────────────────
-function showToast(html, durationMs = 4000) {
+function showToast(html, durationMs = 4000, { top = false } = {}) {
   let el = document.getElementById('app-toast');
   if (!el) {
     el = document.createElement('div');
     el.id = 'app-toast';
-    el.className = 'toast';
     document.body.appendChild(el);
   }
+  el.className = 'toast' + (top ? ' toast--top' : '');
   el.innerHTML = html;
   el.classList.add('toast-show');
   clearTimeout(el._timer);

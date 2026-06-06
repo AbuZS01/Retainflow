@@ -1,4 +1,4 @@
-/* Service worker cache: retainflow-v34 */
+/* Service worker cache: retainflow-v35 */
 
 *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 
@@ -1032,7 +1032,9 @@ h2 { font-size: 1.35rem; margin-bottom: .35rem; }
 
 /* Toast notification */
 .toast { position: fixed; bottom: calc(env(safe-area-inset-bottom) + 72px); left: 50%; transform: translateX(-50%) translateY(20px); background: var(--card-bg, #242424); border-left: 3px solid var(--accent); color: var(--text); font-size: .88rem; padding: .7rem 1.1rem; border-radius: 8px; box-shadow: 0 4px 20px rgba(0,0,0,.4); white-space: nowrap; opacity: 0; transition: opacity .25s, transform .25s; z-index: 300; pointer-events: none; }
-.toast.toast-show { opacity: 1; transform: translateX(-50%) translateY(0); }
+.toast.toast-show { opacity: 1; transform: translateX(-50%) translateY(0); pointer-events: auto; }
+.toast.toast--top { bottom: auto; top: calc(env(safe-area-inset-top) + 1rem); transform: translateX(-50%) translateY(-20px); }
+.toast.toast--top.toast-show { transform: translateX(-50%) translateY(0); }
 .toast a { color: var(--accent); text-decoration: none; }
 .diff-hint { display: block; font-size: .72rem; font-weight: 400; opacity: .7; margin-top: 2px; }
 .queue-search-input { width: 100%; padding: .6rem .9rem; border: 1px solid var(--border); border-radius: 10px; background: var(--card-bg); color: var(--text); font-size: .95rem; margin-bottom: 1rem; }
