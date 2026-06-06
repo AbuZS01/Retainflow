@@ -895,7 +895,7 @@ function updateAudioUI() {
     s.classList.toggle('ayah-section--playing', s.dataset.ayahNum === String(playingAyah));
   });
 
-  btn.textContent = audioState.playing ? '⏸' : '▶';
+  btn.textContent = audioState.playing ? '▮▮' : '▶';
   btn.setAttribute('aria-label', audioState.playing ? 'Pause audio' : 'Play audio');
 
   if (audioState.ayahs.length > 0) {
@@ -1213,22 +1213,6 @@ async function submitReview(quality) {
   if (state.dueItems.length > 0) saveSession(); else clearSession();
   state.reviewItem = null;
 
-  // Show undo toast
-  showToast(
-    `Marked ${quality} · <button id="undo-review-btn" style="background:none;border:none;color:var(--accent);cursor:pointer;font-size:inherit;padding:0;text-decoration:underline">Undo</button>`,
-    5000,
-    { top: true }
-  );
-  document.getElementById('undo-review-btn')?.addEventListener('click', async () => {
-    document.getElementById('app-toast')?.classList.remove('toast-show');
-    await apiFetch('PUT', `/api/items/${undoItemId}/undo-review`, {
-      user_id: state.userId,
-      prev_state: prevState,
-    });
-    clearSession();
-    await loadDashboard();
-    showToast('Review undone');
-  });
 
   if (state.dueItems.length === 0) showSessionComplete();
   else startReview(state.dueItems[0]);
