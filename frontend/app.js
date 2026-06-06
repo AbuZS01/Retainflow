@@ -2168,29 +2168,59 @@ document.querySelectorAll('.ob-level-btn').forEach(btn => {
   });
 });
 
+let obAdvancing = false;
+
 function renderObSuggestions(packs) {
   const container = document.getElementById('ob-suggestions');
   container.innerHTML = '';
   packs.forEach(pack => {
     const row = document.createElement('div');
     row.className = 'ob-suggestion-item';
-    row.innerHTML = `<div><div class="ob-suggestion-label">${pack.label}</div><div class="ob-suggestion-sub">${pack.sub}</div></div><span style="color:var(--accent);font-size:1.1rem">＋</span>`;
+
+    const left = document.createElement('div');
+    const labelEl = document.createElement('div');
+    labelEl.className = 'ob-suggestion-label';
+    labelEl.textContent = pack.label;
+    const subEl = document.createElement('div');
+    subEl.className = 'ob-suggestion-sub';
+    subEl.textContent = pack.sub;
+    left.appendChild(labelEl);
+    left.appendChild(subEl);
+    const plus = document.createElement('span');
+    plus.style.cssText = 'color:var(--accent);font-size:1.1rem';
+    plus.textContent = '＋';
+    row.appendChild(left);
+    row.appendChild(plus);
+
     row.addEventListener('click', async () => {
+      if (obAdvancing) return;
       row.style.opacity = '.5';
       row.style.pointerEvents = 'none';
       const { status: rs, data: rd } = await apiFetch('GET', `/api/quran/${pack.surah}/${pack.from}/${pack.to}`);
-      if (rs !== 200) return;
+      if (rs !== 200) {
+        row.style.opacity = '1';
+        row.style.pointerEvents = '';
+        return;
+      }
       const content = rd.map(a => `${a.arabic}\n${a.english}`).join('\n\n');
-      await apiFetch('POST', '/api/items', {
+      const { status: ps } = await apiFetch('POST', '/api/items', {
         user_id: state.userId,
         item_id: `surah-${pack.surah}-ayat-${pack.from}-${pack.to}`,
         content,
         initial: { interval: 1, ease_factor: 2.5, repetitions: 0, next_due_date: Date.now() },
       });
+      if (ps !== 201) {
+        row.style.opacity = '1';
+        row.style.pointerEvents = '';
+        return;
+      }
       localStorage.setItem('rf_has_items', 'true');
-      row.innerHTML = `<div><div class="ob-suggestion-label">${pack.label}</div><div class="ob-suggestion-sub">${pack.sub}</div></div><span style="color:green">✓</span>`;
+      plus.textContent = '✓';
+      plus.style.color = 'green';
+      plus.style.fontSize = '1.1rem';
       row.style.opacity = '1';
       // Show step 3 after first add
+      obAdvancing = true;
       setTimeout(() => {
         document.getElementById('ob-step-2').classList.add('hidden');
         document.getElementById('ob-step-3').classList.remove('hidden');
