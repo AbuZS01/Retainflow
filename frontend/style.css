@@ -1,4 +1,4 @@
-/* Service worker cache: retainflow-v42 */
+/* Service worker cache: retainflow-v43 */
 
 *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 
@@ -740,7 +740,7 @@ h2 { font-size: 1.35rem; margin-bottom: .35rem; }
   direction: rtl;
   text-align: right;
   font-family: 'Scheherazade New', Georgia, serif;
-  font-size: 2.4rem;
+  font-size: 2rem;
   line-height: 2;
   color: var(--text);
   margin-bottom: 0.5rem;
