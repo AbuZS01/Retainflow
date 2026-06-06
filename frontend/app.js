@@ -56,6 +56,19 @@ function getSavedSession() {
   try { return JSON.parse(localStorage.getItem('rf_session') ?? 'null'); } catch { return null; }
 }
 
+(function handleSyncParam() {
+  const syncId = new URLSearchParams(window.location.search).get('sync');
+  if (!syncId || syncId.length > 200) return;
+  const profiles = getProfiles() ?? [];
+  if (!profiles.find(p => p.userId === syncId)) {
+    profiles.push({ name: 'Synced Profile', userId: syncId });
+    localStorage.setItem('rf_profiles', JSON.stringify(profiles));
+  }
+  state.userId = syncId;
+  localStorage.setItem('rf_user_id', syncId);
+  window.history.replaceState({}, '', window.location.pathname);
+})();
+
 // ── Dark mode (with system preference fallback) ────────────────────────────
 function getSystemTheme() {
   return window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
@@ -221,6 +234,18 @@ document.getElementById('profile-save-btn').addEventListener('click', () => {
 
 document.getElementById('profile-name-input').addEventListener('keydown', (e) => {
   if (e.key === 'Enter') document.getElementById('profile-save-btn').click();
+});
+
+document.getElementById('sync-qr-btn').addEventListener('click', () => {
+  const wrap = document.getElementById('sync-qr-wrap');
+  if (!wrap.classList.contains('hidden')) {
+    wrap.classList.add('hidden');
+    return;
+  }
+  const url = `${window.location.origin}?sync=${encodeURIComponent(state.userId)}`;
+  document.getElementById('sync-qr-img').src =
+    `https://api.qrserver.com/v1/create-qr-code/?size=180x180&data=${encodeURIComponent(url)}`;
+  wrap.classList.remove('hidden');
 });
 
 // ── Text mode (progressive hiding) ────────────────────────────────────────

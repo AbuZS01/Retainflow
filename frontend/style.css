@@ -1051,3 +1051,9 @@ h2 { font-size: 1.35rem; margin-bottom: .35rem; }
 .snooze-option { background: var(--bg); border: 1px solid var(--border); border-radius: 10px; padding: .75rem; font-size: 1rem; font-weight: 500; color: var(--text); cursor: pointer; text-align: center; }
 .snooze-option:hover { border-color: var(--accent); color: var(--accent); }
 .snooze-cancel { background: none; border: none; color: var(--sub); font-size: .9rem; cursor: pointer; text-align: center; padding: .5rem; text-decoration: underline; }
+.profile-sync-section { border-top: 1px solid var(--border); padding-top: .75rem; margin-top: .75rem; }
+.sync-qr-btn { width: 100%; background: var(--bg); border: 1px solid var(--border); border-radius: 10px; padding: .6rem; font-size: .9rem; color: var(--text); cursor: pointer; }
+.sync-qr-wrap { display: flex; flex-direction: column; align-items: center; gap: .5rem; margin-top: .75rem; }
+.sync-qr-wrap.hidden { display: none; }
+.sync-qr-wrap img { border-radius: 8px; }
+.sync-qr-hint { font-size: .78rem; color: var(--sub); text-align: center; }
