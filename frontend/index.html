@@ -377,9 +377,12 @@
         <div class="review-card" id="review-card">
           <div class="review-card-header">
             <div class="item-id-display" id="review-item-id"></div>
-            <div style="display:flex;gap:.4rem;flex-shrink:0">
-              <button id="translation-btn" class="btn-text-mode" title="Toggle translation" aria-label="Toggle English translation">EN ✓</button>
-              <button id="text-mode-btn" class="btn-text-mode" title="Cycle text visibility">👁 Full</button>
+            <div class="review-controls-wrap" style="position:relative">
+              <button id="review-more-btn" class="btn-icon-sm" aria-label="Display options" aria-expanded="false">⋯</button>
+              <div id="review-more-menu" class="review-more-menu hidden" role="menu">
+                <button id="text-mode-btn" class="review-menu-item" role="menuitem">👁 Full</button>
+                <button id="translation-btn" class="review-menu-item" role="menuitem">EN ✓</button>
+              </div>
             </div>
           </div>
           <div class="review-content" id="review-content"></div>
@@ -400,10 +403,10 @@
           </div>
         </div>
         <div class="quality-btns">
-          <button class="q-btn q-forgot" data-quality="forgot">Forgot<span class="q-key">1</span></button>
-          <button class="q-btn q-hard"   data-quality="hard">Hard<span class="q-key">2</span></button>
-          <button class="q-btn q-good"   data-quality="good">Good<span class="q-key">3</span></button>
-          <button class="q-btn q-easy"   data-quality="easy">Easy<span class="q-key">4</span></button>
+          <button class="q-btn q-forgot" data-quality="forgot">Forgot<span class="q-interval" id="qi-forgot"></span></button>
+          <button class="q-btn q-hard"   data-quality="hard">Hard<span class="q-interval" id="qi-hard"></span></button>
+          <button class="q-btn q-good"   data-quality="good">Good<span class="q-interval" id="qi-good"></span></button>
+          <button class="q-btn q-easy"   data-quality="easy">Easy<span class="q-interval" id="qi-easy"></span></button>
         </div>
         <button id="snooze-btn" class="btn-snooze">⏳ Remind me tomorrow</button>
       </div>

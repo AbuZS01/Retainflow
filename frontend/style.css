@@ -1066,3 +1066,9 @@ h2 { font-size: 1.35rem; margin-bottom: .35rem; }
 .juz-review-summary { padding: 1rem; background: var(--surface); border-radius: 10px; text-align: center; }
 .juz-review-summary h3 { color: var(--accent); margin-bottom: .5rem; }
 .juz-review-surahs { font-size: .88rem; color: var(--sub); line-height: 1.6; }
+
+.review-more-menu { position: absolute; right: 0; top: calc(100% + 4px); background: var(--surface); border: 1px solid var(--border); border-radius: 10px; box-shadow: 0 4px 16px rgba(0,0,0,.15); z-index: 105; display: flex; flex-direction: column; min-width: 140px; padding: .3rem; }
+.review-more-menu.hidden { display: none; }
+.review-menu-item { background: none; border: none; padding: .55rem .75rem; font-size: .9rem; color: var(--text); border-radius: 7px; cursor: pointer; text-align: left; }
+.review-menu-item:hover { background: var(--bg); }
+.q-interval { display: block; font-size: .7rem; font-weight: 400; opacity: .8; margin-top: 2px; }

@@ -1194,6 +1194,7 @@ function startReview(item) {
     const n = intervals[q];
     document.getElementById(`rk-days-${q}`).textContent = n === 1 ? '1 day' : `${n} days`;
   });
+  updateIntervalHints(item);
   showView('view-review');
 }
 
@@ -1204,6 +1205,15 @@ function computeInterval(card, quality) {
   if (card.repetitions === 0) return 1;
   if (card.repetitions === 1) return 6;
   return Math.round(card.interval * card.ease_factor);
+}
+
+function updateIntervalHints(card) {
+  const intervals = previewIntervals(card);
+  const fmt = d => d === 1 ? '1 day' : d < 30 ? `${d}d` : `${Math.round(d/30)}mo`;
+  document.getElementById('qi-forgot').textContent = fmt(intervals.forgot);
+  document.getElementById('qi-hard').textContent   = fmt(intervals.hard);
+  document.getElementById('qi-good').textContent   = fmt(intervals.good);
+  document.getElementById('qi-easy').textContent   = fmt(intervals.easy);
 }
 
 function previewIntervals(card) {
@@ -1283,6 +1293,21 @@ document.querySelectorAll('.snooze-option').forEach(btn => {
 
 document.querySelectorAll('.q-btn').forEach((btn) => {
   btn.addEventListener('click', () => submitReview(btn.dataset.quality));
+});
+
+// ── Review ⋯ overflow menu ─────────────────────────────────────────────────
+const reviewMoreBtn  = document.getElementById('review-more-btn');
+const reviewMoreMenu = document.getElementById('review-more-menu');
+reviewMoreBtn.addEventListener('click', (e) => {
+  e.stopPropagation();
+  const open = reviewMoreMenu.classList.toggle('hidden');
+  reviewMoreBtn.setAttribute('aria-expanded', String(!open));
+});
+document.addEventListener('click', (e) => {
+  if (!reviewMoreMenu.contains(e.target) && e.target !== reviewMoreBtn) {
+    reviewMoreMenu.classList.add('hidden');
+    reviewMoreBtn.setAttribute('aria-expanded', 'false');
+  }
 });
 
 // ── Rating key popover ─────────────────────────────────────────────────────
