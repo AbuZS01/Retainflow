@@ -441,7 +441,6 @@ h2 { font-size: 1.35rem; margin-bottom: .35rem; }
 
 /* ── Daily goal bar ───────────────────────────────────────────────────────── */
 .goal-ring-wrap { display: flex; align-items: center; gap: 1rem; margin-bottom: .75rem; }
-.goal-ring-wrap.hidden { display: none; }
 .goal-ring-left { position: relative; flex-shrink: 0; width: 64px; height: 64px; }
 .goal-ring-svg { width: 64px; height: 64px; transform: rotate(-90deg); }
 .goal-ring-track { fill: none; stroke: var(--border); stroke-width: 6; }

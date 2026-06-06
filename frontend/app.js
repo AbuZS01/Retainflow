@@ -820,7 +820,6 @@ function updateGoalBar() {
   bar.classList.remove('hidden');
   document.getElementById('goal-done-num').textContent = String(done);
   document.getElementById('goal-total-num').textContent = String(goal);
-  document.getElementById('goal-input').value = String(goal);
   const circumference = 175.9; // 2 * π * 28
   const pct = Math.min(done / goal, 1);
   document.getElementById('goal-ring-fill').style.strokeDashoffset = String(circumference * (1 - pct));
