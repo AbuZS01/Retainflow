@@ -1,4 +1,4 @@
-/* Service worker cache: retainflow-v38 */
+/* Service worker cache: retainflow-v39 */
 
 *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 
@@ -726,7 +726,7 @@ h2 { font-size: 1.35rem; margin-bottom: .35rem; }
 .ps-track { flex: 1; height: 4px; background: var(--border); border-radius: 2px; cursor: pointer; position: relative; }
 .ps-fill  { height: 100%; width: 0%; background: var(--accent); border-radius: 2px; transition: width 0.25s linear; }
 
-.ps-controls { display: flex; align-items: center; justify-content: space-between; margin-bottom: 0.5rem; }
+.ps-controls { display: flex; align-items: center; justify-content: center; gap: 1rem; margin-bottom: 0.5rem; }
 .ps-btn { background: none; border: none; cursor: pointer; color: var(--accent); font-size: 1.3rem; padding: 0.3rem; border-radius: 50%; transition: background 0.12s; line-height: 1; font-variant-emoji: text; -webkit-font-variant-emoji: text; }
 .ps-btn:hover { background: var(--bg); }
 .ps-play { width: 44px; height: 44px; background: var(--accent); color: #fff; border-radius: 50%; font-size: 1.1rem; display: flex; align-items: center; justify-content: center; }
@@ -850,14 +850,6 @@ h2 { font-size: 1.35rem; margin-bottom: .35rem; }
 .nav-tab .nav-label { font-size: .58rem; letter-spacing: .03em; white-space: nowrap; }
 .nav-tab.active { color: var(--accent); }
 .nav-tab.active .nav-label { font-weight: 600; }
-.nav-tab.active::after {
-  content: '';
-  position: absolute;
-  bottom: 4px;
-  width: 4px; height: 4px;
-  border-radius: 50%;
-  background: var(--accent);
-}
 
 /* Centre Add tab — elevated pill */
 .nav-tab--add {
