@@ -1144,9 +1144,10 @@ document.getElementById('ps-next-ayah').addEventListener('click', () => {
 });
 
 document.getElementById('ps-next-verse').addEventListener('click', () => {
-  // Advance to next review item in queue
+  // Skip to next review item in queue
   stopAudio();
-  const nextIdx = state.sessionDone;
+  const curIdx = state.dueItems.indexOf(state.reviewItem);
+  const nextIdx = curIdx + 1;
   if (nextIdx < state.dueItems.length) {
     startReview(state.dueItems[nextIdx]);
   }
@@ -1487,13 +1488,18 @@ async function loadStats() {
   const legend = document.createElement('div');
   legend.className = 'quality-legend';
   Object.entries(qualityCount).forEach(([q, n]) => {
+    if (n === 0) return; // skip zero-count qualities
     const seg = document.createElement('div');
     seg.className = 'quality-seg';
-    seg.style.cssText = `background:${QUALITY_COLORS[q]};width:${(n/total*100).toFixed(1)}%`;
+    seg.style.cssText = `background:${QUALITY_COLORS[q]};flex:${n}`;
     barWrap.appendChild(seg);
     const li = document.createElement('div');
     li.className = 'q-leg-item';
-    li.innerHTML = `<span class="q-leg-dot" style="background:${QUALITY_COLORS[q]}"></span>${q} (${n})`;
+    const dot = document.createElement('span');
+    dot.className = 'q-leg-dot';
+    dot.style.background = QUALITY_COLORS[q];
+    li.appendChild(dot);
+    li.appendChild(document.createTextNode(`${q} (${n})`));
     legend.appendChild(li);
   });
   qEl.appendChild(barWrap);
