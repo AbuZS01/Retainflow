@@ -138,7 +138,7 @@ h2 { font-size: 1.35rem; margin-bottom: .35rem; }
 .progress-track { height: 4px; background: var(--border); border-radius: 2px; overflow: hidden; }
 .progress-fill { height: 100%; background: var(--accent); border-radius: 2px; transition: width .3s ease; width: 0%; }
 
-.review-card { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); padding: 1.25rem 1.5rem 1.5rem; text-align: center; margin: 1rem 0; touch-action: pan-y; user-select: none; will-change: transform; }
+.review-card { background: transparent; border: none; border-radius: 0; padding: .5rem 0 1.5rem; text-align: center; margin: 0; touch-action: pan-y; user-select: none; }
 .review-card-header { display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: .75rem; }
 .item-id-display { font-size: .9rem; font-weight: 600; word-break: break-all; color: var(--sub); text-align: left; }
 .btn-text-mode { background: none; border: 1px solid var(--border); border-radius: 6px; color: var(--sub); cursor: pointer; font-size: .72rem; padding: .25rem .55rem; white-space: nowrap; transition: border-color .15s, color .15s; flex-shrink: 0; }
@@ -699,6 +699,8 @@ h2 { font-size: 1.35rem; margin-bottom: .35rem; }
 .ayah-section--playing { background: rgba(122,89,0,0.08); }
 .en-verse { font-size: 0.82rem; color: var(--sub); font-style: italic; line-height: 1.5; margin-top: 0.1rem; direction: ltr; text-align: left; }
 
+.ayah-section + .ayah-section { border-top: 1px solid var(--border); margin-top: .75rem; padding-top: .75rem; }
+
 /* Tappable words */
 .ar-word--tappable { cursor: pointer; border-radius: 3px; transition: background 0.12s; }
 .ar-word--tappable:hover, .ar-word--tappable:active { background: rgba(122,89,0,0.15); }
@@ -743,8 +745,8 @@ h2 { font-size: 1.35rem; margin-bottom: .35rem; }
   direction: rtl;
   text-align: right;
   font-family: 'Scheherazade New', Georgia, serif;
-  font-size: 2rem;
-  line-height: 2.2;
+  font-size: 2.4rem;
+  line-height: 2;
   color: var(--text);
   margin-bottom: 0.5rem;
   overflow-wrap: break-word;
@@ -763,12 +765,10 @@ h2 { font-size: 1.35rem; margin-bottom: .35rem; }
 }
 
 .ayah-marker {
-  display: inline;
-  font-family: 'Scheherazade New', Georgia, serif;
-  font-size: 1rem;
   color: var(--accent);
-  margin: 0 0.15em;
-  user-select: none;
+  opacity: .6;
+  font-size: 1.2rem;
+  margin: 0 .15rem;
 }
 
 .ar-word { display: inline-block; padding: .05em .1em; border-radius: 3px; transition: opacity .2s; }
