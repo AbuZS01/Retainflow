@@ -1018,7 +1018,7 @@ function initAudioForItem(itemId) {
   audioState.singleAyahMode = false;
   audioState.loopsDone      = 0;
   audioState.loopMode       = getLoopMode();
-  sheet.classList.remove('hidden');
+  sheet.classList.add('hidden');
   updateAudioUI();
 }
 
@@ -1026,6 +1026,7 @@ document.getElementById('audio-play-btn').addEventListener('click', () => {
   if (audioState.playing) {
     stopAudio();
   } else {
+    showPlaybackSheet();
     playFromIdx(audioState.currentIdx);
   }
 });
@@ -1080,6 +1081,19 @@ document.querySelectorAll('.loop-btn').forEach(btn => {
     }
   }, { passive: true });
 })();
+
+// ── iOS audio unlock ───────────────────────────────────────────────────────
+// iOS blocks audio.play() unless a user gesture triggers it. We unlock once
+// on the first tap anywhere in the review view so subsequent word taps work.
+let audioUnlocked = false;
+function ensureAudioUnlocked() {
+  if (audioUnlocked) return;
+  audioUnlocked = true;
+  const silent = new Audio();
+  silent.src = 'data:audio/wav;base64,UklGRiQAAABXQVZFZm10IBAAAAABAAEARKwAAIhYAQACABAAZGF0YQAAAAA=';
+  silent.play().catch(() => {});
+}
+document.getElementById('view-review').addEventListener('touchstart', ensureAudioUnlocked, { once: false, passive: true });
 
 function showPlaybackSheet() {
   const sheet = document.getElementById('playback-sheet');
