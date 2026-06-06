@@ -1169,21 +1169,41 @@ function previewIntervals(card) {
 
 async function submitReview(quality) {
   if (!state.reviewItem) return;
+  // Capture SM-2 state before review (for undo)
+  const prevState = {
+    interval:      state.reviewItem.interval,
+    ease_factor:   state.reviewItem.ease_factor,
+    repetitions:   state.reviewItem.repetitions,
+    next_due_date: state.reviewItem.next_due_date,
+  };
+  const undoItemId = state.reviewItem.item_id;
   stopAudio();
   haptic(25);
   incrementTodayCount();
-  // Include user_id so the server can verify ownership
   await apiFetch('PUT', `/api/items/${state.reviewItem.item_id}/review`, { quality, user_id: state.userId });
   state.sessionDone++;
   state.dueItems = state.dueItems.filter((i) => i.item_id !== state.reviewItem.item_id);
   if (state.dueItems.length > 0) saveSession(); else clearSession();
   state.reviewItem = null;
 
-  if (state.dueItems.length === 0) {
-    showSessionComplete();
-  } else {
-    startReview(state.dueItems[0]);
-  }
+  // Show undo toast
+  showToast(
+    `Marked ${quality} · <button id="undo-review-btn" style="background:none;border:none;color:var(--accent);cursor:pointer;font-size:inherit;padding:0;text-decoration:underline">Undo</button>`,
+    5000
+  );
+  document.getElementById('undo-review-btn')?.addEventListener('click', async () => {
+    document.getElementById('app-toast')?.classList.remove('toast-show');
+    await apiFetch('PUT', `/api/items/${undoItemId}/undo-review`, {
+      user_id: state.userId,
+      prev_state: prevState,
+    });
+    clearSession();
+    await loadDashboard();
+    showToast('Review undone');
+  });
+
+  if (state.dueItems.length === 0) showSessionComplete();
+  else startReview(state.dueItems[0]);
 }
 
 document.getElementById('review-back-btn').addEventListener('click', () => {
