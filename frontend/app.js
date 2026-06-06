@@ -1209,7 +1209,7 @@ function computeInterval(card, quality) {
 
 function updateIntervalHints(card) {
   const intervals = previewIntervals(card);
-  const fmt = d => d === 1 ? '1 day' : d < 30 ? `${d}d` : `${Math.round(d/30)}mo`;
+  const fmt = d => d === 1 ? '1 day' : d < 30 ? `${d} days` : `${Math.round(d/30)}mo`;
   document.getElementById('qi-forgot').textContent = fmt(intervals.forgot);
   document.getElementById('qi-hard').textContent   = fmt(intervals.hard);
   document.getElementById('qi-good').textContent   = fmt(intervals.good);
@@ -1300,10 +1300,11 @@ const reviewMoreBtn  = document.getElementById('review-more-btn');
 const reviewMoreMenu = document.getElementById('review-more-menu');
 reviewMoreBtn.addEventListener('click', (e) => {
   e.stopPropagation();
-  const open = reviewMoreMenu.classList.toggle('hidden');
-  reviewMoreBtn.setAttribute('aria-expanded', String(!open));
+  const isNowHidden = reviewMoreMenu.classList.toggle('hidden');
+  reviewMoreBtn.setAttribute('aria-expanded', String(!isNowHidden));
 });
 document.addEventListener('click', (e) => {
+  if (reviewMoreMenu.classList.contains('hidden')) return;
   if (!reviewMoreMenu.contains(e.target) && e.target !== reviewMoreBtn) {
     reviewMoreMenu.classList.add('hidden');
     reviewMoreBtn.setAttribute('aria-expanded', 'false');
