@@ -1212,14 +1212,28 @@ document.getElementById('review-back-btn').addEventListener('click', () => {
   loadDashboard();
 });
 
-document.getElementById('snooze-btn').addEventListener('click', async () => {
+document.getElementById('snooze-btn').addEventListener('click', () => {
   haptic(10);
-  await apiFetch('PUT', `/api/items/${state.reviewItem.item_id}/snooze`, { user_id: state.userId });
-  stopAudio();
-  state.dueItems = state.dueItems.filter(i => i.item_id !== state.reviewItem.item_id);
-  state.reviewItem = null;
-  if (state.dueItems.length === 0) showSessionComplete();
-  else startReview(state.dueItems[0]);
+  document.getElementById('snooze-sheet').classList.remove('hidden');
+});
+
+document.getElementById('snooze-cancel-btn').addEventListener('click', () => {
+  document.getElementById('snooze-sheet').classList.add('hidden');
+});
+
+document.querySelectorAll('.snooze-option').forEach(btn => {
+  btn.addEventListener('click', async () => {
+    const days = parseInt(btn.dataset.days, 10);
+    document.getElementById('snooze-sheet').classList.add('hidden');
+    await apiFetch('PUT', `/api/items/${state.reviewItem.item_id}/snooze`, {
+      user_id: state.userId, days,
+    });
+    stopAudio();
+    state.dueItems = state.dueItems.filter(i => i.item_id !== state.reviewItem.item_id);
+    state.reviewItem = null;
+    if (state.dueItems.length === 0) showSessionComplete();
+    else startReview(state.dueItems[0]);
+  });
 });
 
 document.querySelectorAll('.q-btn').forEach((btn) => {

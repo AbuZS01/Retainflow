@@ -521,6 +521,17 @@
       <button id="edit-range-save-btn" class="btn-primary" style="margin-top:.75rem;width:100%">Save changes</button>
     </div>
   </div>
+  <!-- Snooze options sheet -->
+  <div id="snooze-sheet" class="snooze-sheet hidden" role="dialog" aria-label="Snooze options">
+    <div class="snooze-sheet-inner">
+      <p class="snooze-sheet-title">Snooze until…</p>
+      <button class="snooze-option" data-days="1">Tomorrow</button>
+      <button class="snooze-option" data-days="3">In 3 days</button>
+      <button class="snooze-option" data-days="7">In 1 week</button>
+      <button class="snooze-option" data-days="14">In 2 weeks</button>
+      <button id="snooze-cancel-btn" class="snooze-cancel">Cancel</button>
+    </div>
+  </div>
   <script src="app.js"></script>
   <script>
     if ('serviceWorker' in navigator) {
