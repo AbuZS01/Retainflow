@@ -470,6 +470,7 @@ async function loadDashboard() {
   updateGoalBar();
   renderUpcomingStrip();
   renderStreakChip();
+  maybeShowOnboarding();
 }
 
 function renderStreakChip() {
@@ -2118,6 +2119,104 @@ document.getElementById('notif-time').addEventListener('change', () => {
   clearTimeout(notifTimer);
   scheduleNotification();
   updateNotifUI();
+});
+
+// ── Onboarding ─────────────────────────────────────────────────────────────
+const OB_SUGGESTIONS = {
+  beginner:     [
+    { label: 'Al-Ikhlas', sub: '4 ayahs · Sincerity', surah: 112, from: 1, to: 4 },
+    { label: 'Al-Falaq',  sub: '5 ayahs · Daybreak',  surah: 113, from: 1, to: 5 },
+    { label: 'An-Nas',    sub: '6 ayahs · Mankind',   surah: 114, from: 1, to: 6 },
+  ],
+  intermediate: [
+    { label: 'Al-Fatiha', sub: '7 ayahs · The Opening',       surah: 1,   from: 1, to: 7  },
+    { label: 'Al-Mulk',   sub: '30 ayahs · The Sovereignty',  surah: 67,  from: 1, to: 30 },
+    { label: 'Ya-Sin',    sub: '83 ayahs · Ya-Sin',            surah: 36,  from: 1, to: 83 },
+  ],
+  advanced: [
+    { label: 'Al-Kahf 1–10', sub: 'First 10 ayahs',    surah: 18, from: 1, to: 10 },
+    { label: 'Ar-Rahman',    sub: '78 ayahs',           surah: 55, from: 1, to: 78 },
+  ],
+  hafidh: [], // skip to Juz tracking
+};
+
+function maybeShowOnboarding() {
+  const done = localStorage.getItem('rf_onboarding_done');
+  const hasItems = localStorage.getItem('rf_has_items');
+  if (done || hasItems) return;
+  document.getElementById('onboarding-overlay').classList.remove('hidden');
+}
+
+let obSelectedLevel = null;
+
+document.querySelectorAll('.ob-level-btn').forEach(btn => {
+  btn.addEventListener('click', async () => {
+    obSelectedLevel = btn.dataset.level;
+    document.querySelectorAll('.ob-level-btn').forEach(b => b.classList.remove('selected'));
+    btn.classList.add('selected');
+    // Show step 2
+    document.getElementById('ob-step-1').classList.add('hidden');
+    const step2 = document.getElementById('ob-step-2');
+    step2.classList.remove('hidden');
+    if (obSelectedLevel === 'hafidh') {
+      document.getElementById('ob-desc').textContent = 'As a ḥāfiẓ, you can track full juz. Head to Browse Juz after setup.';
+      document.getElementById('ob-suggestions').innerHTML = '';
+    } else {
+      document.getElementById('ob-desc').textContent = 'Tap any range to add it to your review queue.';
+      renderObSuggestions(OB_SUGGESTIONS[obSelectedLevel] ?? []);
+    }
+  });
+});
+
+function renderObSuggestions(packs) {
+  const container = document.getElementById('ob-suggestions');
+  container.innerHTML = '';
+  packs.forEach(pack => {
+    const row = document.createElement('div');
+    row.className = 'ob-suggestion-item';
+    row.innerHTML = `<div><div class="ob-suggestion-label">${pack.label}</div><div class="ob-suggestion-sub">${pack.sub}</div></div><span style="color:var(--accent);font-size:1.1rem">＋</span>`;
+    row.addEventListener('click', async () => {
+      row.style.opacity = '.5';
+      row.style.pointerEvents = 'none';
+      const { status: rs, data: rd } = await apiFetch('GET', `/api/quran/${pack.surah}/${pack.from}/${pack.to}`);
+      if (rs !== 200) return;
+      const content = rd.map(a => `${a.arabic}\n${a.english}`).join('\n\n');
+      await apiFetch('POST', '/api/items', {
+        user_id: state.userId,
+        item_id: `surah-${pack.surah}-ayat-${pack.from}-${pack.to}`,
+        content,
+        initial: { interval: 1, ease_factor: 2.5, repetitions: 0, next_due_date: Date.now() },
+      });
+      localStorage.setItem('rf_has_items', 'true');
+      row.innerHTML = `<div><div class="ob-suggestion-label">${pack.label}</div><div class="ob-suggestion-sub">${pack.sub}</div></div><span style="color:green">✓</span>`;
+      row.style.opacity = '1';
+      // Show step 3 after first add
+      setTimeout(() => {
+        document.getElementById('ob-step-2').classList.add('hidden');
+        document.getElementById('ob-step-3').classList.remove('hidden');
+      }, 600);
+    });
+    container.appendChild(row);
+  });
+}
+
+document.getElementById('ob-custom-btn').addEventListener('click', () => {
+  localStorage.setItem('rf_onboarding_done', '1');
+  document.getElementById('onboarding-overlay').classList.add('hidden');
+  openAddView();
+});
+
+document.getElementById('ob-start-btn').addEventListener('click', async () => {
+  localStorage.setItem('rf_onboarding_done', '1');
+  document.getElementById('onboarding-overlay').classList.add('hidden');
+  await loadDashboard();
+  if (state.dueItems.length > 0) startReview(state.dueItems[0]);
+});
+
+document.getElementById('ob-skip-final-btn').addEventListener('click', () => {
+  localStorage.setItem('rf_onboarding_done', '1');
+  document.getElementById('onboarding-overlay').classList.add('hidden');
+  loadDashboard();
 });
 
 // ── Landing ────────────────────────────────────────────────────────────────

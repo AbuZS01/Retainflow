@@ -91,6 +91,50 @@
 
   <div id="app">
 
+    <div id="onboarding-overlay" class="onboarding-overlay hidden" role="dialog" aria-label="Welcome to muraja'ah">
+      <div class="onboarding-panel">
+        <!-- Step 1: Level -->
+        <div class="ob-step" id="ob-step-1">
+          <div class="ob-icon">📖</div>
+          <h2 class="ob-title">How much have you memorised?</h2>
+          <div class="ob-level-grid">
+            <button class="ob-level-btn" data-level="beginner">
+              <span class="ob-level-label">Beginner</span>
+              <span class="ob-level-sub">A few short surahs</span>
+            </button>
+            <button class="ob-level-btn" data-level="intermediate">
+              <span class="ob-level-label">Intermediate</span>
+              <span class="ob-level-sub">Juz 'Amma or more</span>
+            </button>
+            <button class="ob-level-btn" data-level="advanced">
+              <span class="ob-level-label">Advanced</span>
+              <span class="ob-level-sub">Multiple juz</span>
+            </button>
+            <button class="ob-level-btn" data-level="hafidh">
+              <span class="ob-level-label">Ḥāfiẓ</span>
+              <span class="ob-level-sub">Complete Quran</span>
+            </button>
+          </div>
+        </div>
+        <!-- Step 2: Suggestion -->
+        <div class="ob-step hidden" id="ob-step-2">
+          <div class="ob-icon">✨</div>
+          <h2 class="ob-title">Here's a good starting point</h2>
+          <p class="ob-desc" id="ob-desc"></p>
+          <div id="ob-suggestions" class="ob-suggestions"></div>
+          <button id="ob-custom-btn" class="ob-skip-btn">I'll choose my own →</button>
+        </div>
+        <!-- Step 3: Ready -->
+        <div class="ob-step hidden" id="ob-step-3">
+          <div class="ob-icon">🌟</div>
+          <h2 class="ob-title">You're all set!</h2>
+          <p class="ob-desc">Your first items have been added. Let's do a quick review to calibrate the schedule.</p>
+          <button id="ob-start-btn" class="btn-primary" style="width:100%;margin-top:1rem">Start first review →</button>
+          <button id="ob-skip-final-btn" class="ob-skip-btn" style="margin-top:.5rem">Go to dashboard</button>
+        </div>
+      </div>
+    </div>
+
     <!-- Landing Page — shown only on first visit -->
     <div id="view-landing" class="view active">
       <div class="lp-scroll">

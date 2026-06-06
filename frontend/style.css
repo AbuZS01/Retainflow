@@ -1085,3 +1085,23 @@ h2 { font-size: 1.35rem; margin-bottom: .35rem; }
 .add-tab--active { background: var(--accent); color: var(--btn-text); font-weight: 600; }
 .add-panel { }
 .add-panel.hidden { display: none; }
+
+.onboarding-overlay { position: fixed; inset: 0; background: var(--bg); z-index: 200; display: flex; align-items: flex-end; justify-content: center; padding-bottom: env(safe-area-inset-bottom); }
+.onboarding-overlay.hidden { display: none; }
+.onboarding-panel { background: var(--surface); border-radius: 20px 20px 0 0; padding: 2rem 1.25rem 2.5rem; width: 100%; max-width: 480px; }
+.ob-step { display: flex; flex-direction: column; align-items: center; gap: .75rem; }
+.ob-step.hidden { display: none; }
+.ob-icon { font-size: 2.5rem; }
+.ob-title { font-size: 1.2rem; font-weight: 700; text-align: center; }
+.ob-desc { font-size: .9rem; color: var(--sub); text-align: center; line-height: 1.55; }
+.ob-level-grid { display: grid; grid-template-columns: 1fr 1fr; gap: .5rem; width: 100%; }
+.ob-level-btn { background: var(--bg); border: 1px solid var(--border); border-radius: 12px; padding: .9rem .75rem; cursor: pointer; text-align: center; display: flex; flex-direction: column; gap: .2rem; transition: border-color .15s; }
+.ob-level-btn:hover, .ob-level-btn.selected { border-color: var(--accent); background: var(--surface); }
+.ob-level-label { font-weight: 600; font-size: .9rem; color: var(--text); }
+.ob-level-sub { font-size: .75rem; color: var(--sub); }
+.ob-suggestions { display: flex; flex-direction: column; gap: .5rem; width: 100%; }
+.ob-suggestion-item { background: var(--bg); border: 1px solid var(--border); border-radius: 10px; padding: .75rem 1rem; display: flex; justify-content: space-between; align-items: center; cursor: pointer; transition: border-color .15s; }
+.ob-suggestion-item:hover { border-color: var(--accent); }
+.ob-suggestion-label { font-size: .9rem; font-weight: 600; color: var(--text); }
+.ob-suggestion-sub { font-size: .75rem; color: var(--sub); }
+.ob-skip-btn { background: none; border: none; color: var(--sub); font-size: .85rem; cursor: pointer; text-decoration: underline; width: 100%; text-align: center; padding: .5rem; }
