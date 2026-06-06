@@ -155,7 +155,7 @@ Full SPA with views: `view-landing`, `view-dashboard`, `view-add`, `view-review`
 4. Add Persistent Disk: mount path `/data`, size 1 GB
 5. Set environment variables:
    - `DB_PATH` = `/data/muraja.db`
-   - `ALLOWED_ORIGINS` = `https://YOUR-APP-NAME.onrender.com`
+   - `ALLOWED_ORIGINS` = `https://retainflow.onrender.com`
    - `PORT` = `3000`
 6. Deploy
 
@@ -175,7 +175,7 @@ git push origin main
 | Variable | Value |
 |----------|-------|
 | `DB_PATH` | `/data/muraja.db` |
-| `ALLOWED_ORIGINS` | `https://YOUR-APP-NAME.onrender.com` |
+| `ALLOWED_ORIGINS` | `https://retainflow.onrender.com` |
 | `PORT` | `3000` |
 
 ---
