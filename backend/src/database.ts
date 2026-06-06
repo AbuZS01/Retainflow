@@ -1,6 +1,8 @@
 import Database from 'better-sqlite3';
 import type { Database as BetterSqlite3Database } from 'better-sqlite3';
 import { createRequire } from 'module';
+import fs from 'fs';
+import path from 'path';
 import type { ReviewResult } from './engine.js';
 
 const require = createRequire(import.meta.url);
@@ -31,8 +33,9 @@ export interface LogRow {
   reviewed_at: number;
 }
 
-export function initDb(path: string): Db {
-  const db = new Database(path);
+export function initDb(dbPath: string): Db {
+  fs.mkdirSync(path.dirname(dbPath), { recursive: true });
+  const db = new Database(dbPath);
   db.pragma('journal_mode = WAL');
   db.pragma('foreign_keys = ON');
   db.exec(`
