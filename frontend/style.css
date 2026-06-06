@@ -1,4 +1,4 @@
-/* Service worker cache: retainflow-v32 */
+/* Service worker cache: retainflow-v33 */
 
 *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 
@@ -657,8 +657,9 @@ h2 { font-size: 1.35rem; margin-bottom: .35rem; }
 /* ── Difficulty picker ─────────────────────────────────────────────────────── */
 .difficulty-picker { margin-bottom: 1rem; }
 .difficulty-label { font-size: .8rem; color: var(--sub); margin-bottom: .5rem; }
-.difficulty-pills { display: flex; gap: .4rem; }
-.diff-pill { flex: 1; background: var(--bg); border: 1px solid var(--border); border-radius: 20px; color: var(--sub); cursor: pointer; font-size: .8rem; padding: .45rem .5rem; text-align: center; transition: border-color .15s, color .15s, background .15s; white-space: nowrap; }
+.difficulty-pills { display: grid; grid-template-columns: 1fr 1fr; gap: .4rem; }
+.difficulty-pills .diff-pill:last-child { grid-column: 1 / -1; }
+.diff-pill { background: var(--bg); border: 1px solid var(--border); border-radius: 20px; color: var(--sub); cursor: pointer; font-size: .8rem; padding: .45rem .5rem; text-align: center; transition: border-color .15s, color .15s, background .15s; }
 .diff-pill:hover { border-color: var(--accent); color: var(--accent); }
 .diff-pill--active { background: var(--accent); border-color: var(--accent); color: var(--btn-text); font-weight: 600; }
 
