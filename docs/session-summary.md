@@ -89,11 +89,11 @@ Full SPA with views: `view-landing`, `view-dashboard`, `view-add`, `view-review`
 - No undo UI (backend endpoint still exists)
 
 ### `frontend/style.css`
-- SW cache comment: `retainflow-v41`
+- SW cache comment: `retainflow-v44`
 - Light theme: `--bg: #fdf8e1`, `--accent: #7a5900`; dark: `--accent: #c9a227`
 - Rating buttons: 4-column row with interval hints below label (`.q-interval`)
 - `.review-card`: borderless/full-bleed (transparent background, no border)
-- `.ar-flow`: `font-size: 2.4rem`; `.ayah-section + .ayah-section`: gold separator line
+- `.ar-flow`: `font-size: 2rem`; `.ayah-section + .ayah-section`: gold separator line
 - `.goal-ring-wrap`: circular SVG progress ring on dashboard
 - `.add-tabs` / `.add-tab` / `.add-tab--active` / `.add-panel`: 3-tab add screen
 - `.onboarding-overlay` / `.ob-*`: full onboarding flow styles
@@ -125,14 +125,16 @@ Full SPA with views: `view-landing`, `view-dashboard`, `view-add`, `view-review`
 | `addSingleJuzItem(juzNum)` | POSTs `juz-N` with empty content; handles 201/409/403 |
 | `prettyItemId(id)` | Handles `juz-N` → "Juz N"; `surah-X-ayat-Y-Z` → "Surah · Y–Z" |
 | `startReview(item)` | Juz items: renders `.juz-review-summary`; non-juz: normal flow; calls `updateIntervalHints` |
-| `initAudioForItem(itemId)` | Early return guard for `juz-\d+` items |
+| `initAudioForItem(itemId)` | Sets up audioState but keeps sheet hidden; sheet only shown when user taps play or a word |
+| `ensureAudioUnlocked()` | Silent audio play on first touch in review view — unlocks iOS audio engine |
+| `showPlaybackSheet()` | Shows sheet + called from play button tap and word tap |
 | `showSessionComplete()` | Clears active toast before showing completion screen |
 | `showToast(html, ms, {top})` | `top:true` → positions at top of screen; `top:false` (default) → bottom |
 | `ps-next-verse` | Removed — no skip button in audio player |
 | Queue rows | No notes button; no rep-count meta; just item name + delete button |
 
 ### `frontend/sw.js`
-- Cache name: `retainflow-v41`
+- Cache name: `retainflow-v44`
 - Network-first for `/api/`, cache-first for shell assets
 
 ### `Dockerfile` (repo root)
