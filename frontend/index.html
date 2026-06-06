@@ -316,30 +316,45 @@
       <h2>Add to Review Queue</h2>
       <p class="add-subhead">Returning to something you memorised before? Add it — the algorithm will quickly work out what still needs attention.</p>
 
-      <!-- Starter packs -->
-      <div class="starter-packs">
-        <p class="starter-label">Quick start</p>
-        <div id="packs-grid" class="packs-grid"></div>
+      <!-- Tab bar -->
+      <div class="add-tabs" role="tablist">
+        <button class="add-tab add-tab--active" data-tab="quick" role="tab" aria-selected="true">Quick add</button>
+        <button class="add-tab" data-tab="juz" role="tab" aria-selected="false">Browse Juz</button>
+        <button class="add-tab" data-tab="search" role="tab" aria-selected="false">Search</button>
       </div>
 
-      <!-- Juz browser -->
-      <div class="juz-section">
-        <p class="starter-label">Browse by Juz</p>
-        <div id="juz-grid" class="juz-grid"></div>
-        <div id="juz-surahs" class="juz-surahs hidden"></div>
-        <div id="juz-single-wrap" class="juz-single-wrap hidden">
-          <button id="juz-single-btn" class="juz-single-btn">Track Juz <span id="juz-single-num"></span> as one item</button>
-          <p class="juz-single-sub">Revise the whole Juz at once — best for a complete ḥāfiẓ</p>
+      <!-- Panel: Quick add -->
+      <div id="add-panel-quick" class="add-panel" role="tabpanel">
+        <!-- Starter packs -->
+        <div class="starter-packs">
+          <p class="starter-label">Quick start</p>
+          <div id="packs-grid" class="packs-grid"></div>
         </div>
       </div>
 
-      <p class="starter-divider">— or search —</p>
-      <div class="search-bar">
-        <input id="search-input" type="text" placeholder="e.g. Al-Mulk, mercy, bismillah..." autocomplete="off" aria-label="Search Quran" />
+      <!-- Panel: Browse Juz -->
+      <div id="add-panel-juz" class="add-panel hidden" role="tabpanel">
+        <!-- Juz browser -->
+        <div class="juz-section">
+          <p class="starter-label">Browse by Juz</p>
+          <div id="juz-grid" class="juz-grid"></div>
+          <div id="juz-surahs" class="juz-surahs hidden"></div>
+          <div id="juz-single-wrap" class="juz-single-wrap hidden">
+            <button id="juz-single-btn" class="juz-single-btn">Track Juz <span id="juz-single-num"></span> as one item</button>
+            <p class="juz-single-sub">Revise the whole Juz at once — best for a complete ḥāfiẓ</p>
+          </div>
+        </div>
       </div>
-      <div id="search-results" class="search-results"></div>
 
-      <!-- Range selector — shown after user picks an ayah -->
+      <!-- Panel: Search -->
+      <div id="add-panel-search" class="add-panel hidden" role="tabpanel">
+        <div class="search-bar">
+          <input id="search-input" type="text" placeholder="e.g. Al-Mulk, mercy, bismillah..." autocomplete="off" aria-label="Search Quran" />
+        </div>
+        <div id="search-results" class="search-results"></div>
+      </div>
+
+      <!-- Range selector — shared, always visible below active panel -->
       <div id="range-selector" class="range-selector hidden">
         <div class="range-header">
           <span id="range-surah-label"></span>

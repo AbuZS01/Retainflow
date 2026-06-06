@@ -1078,3 +1078,10 @@ h2 { font-size: 1.35rem; margin-bottom: .35rem; }
 .review-menu-item { background: none; border: none; padding: .55rem .75rem; font-size: .9rem; color: var(--text); border-radius: 7px; cursor: pointer; text-align: left; }
 .review-menu-item:hover { background: var(--bg); }
 .q-interval { display: block; font-size: .7rem; font-weight: 400; opacity: .8; margin-top: 2px; }
+
+/* Add screen — tab bar */
+.add-tabs { display: flex; gap: .35rem; margin-bottom: 1rem; background: var(--surface); border-radius: 10px; padding: .25rem; }
+.add-tab { flex: 1; background: none; border: none; border-radius: 8px; padding: .5rem; font-size: .85rem; color: var(--sub); cursor: pointer; transition: background .15s, color .15s; }
+.add-tab--active { background: var(--accent); color: var(--btn-text); font-weight: 600; }
+.add-panel { }
+.add-panel.hidden { display: none; }

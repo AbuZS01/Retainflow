@@ -641,8 +641,23 @@ function selectStarterPack(pack) {
   document.getElementById('range-selector').scrollIntoView({ behavior: 'smooth' });
 }
 
+function switchAddTab(tabName) {
+  document.querySelectorAll('.add-tab').forEach(t => {
+    const active = t.dataset.tab === tabName;
+    t.classList.toggle('add-tab--active', active);
+    t.setAttribute('aria-selected', String(active));
+  });
+  document.querySelectorAll('.add-panel').forEach(p => {
+    p.classList.toggle('hidden', !p.id.endsWith(tabName));
+  });
+}
+document.querySelectorAll('.add-tab').forEach(tab => {
+  tab.addEventListener('click', () => switchAddTab(tab.dataset.tab));
+});
+
 function openAddView() {
   setActiveTab('add');
+  switchAddTab('quick');
   document.getElementById('search-input').value = '';
   document.getElementById('search-results').innerHTML = '';
   document.getElementById('range-selector').classList.add('hidden');
