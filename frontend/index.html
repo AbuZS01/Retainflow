@@ -499,6 +499,28 @@
       <div id="loop-dots" class="loop-dots hidden"></div>
     </div>
   </div>
+  <!-- Edit range modal -->
+  <div id="edit-range-modal" class="modal-overlay hidden" role="dialog" aria-label="Edit range">
+    <div class="modal-panel">
+      <div class="modal-hd">
+        <span class="modal-title">Edit range</span>
+        <button id="edit-modal-close" class="btn-icon-sm" aria-label="Close">✕</button>
+      </div>
+      <p id="edit-modal-surah" class="edit-modal-surah"></p>
+      <div class="range-inputs">
+        <div class="range-field">
+          <label for="edit-range-from">From ayah</label>
+          <input id="edit-range-from" type="number" min="1" aria-label="From ayah" />
+        </div>
+        <div class="range-field">
+          <label for="edit-range-to">To ayah</label>
+          <input id="edit-range-to" type="number" min="1" aria-label="To ayah" />
+        </div>
+      </div>
+      <div id="edit-range-error" class="error-msg hidden" role="alert"></div>
+      <button id="edit-range-save-btn" class="btn-primary" style="margin-top:.75rem;width:100%">Save changes</button>
+    </div>
+  </div>
   <script src="app.js"></script>
   <script>
     if ('serviceWorker' in navigator) {

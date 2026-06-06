@@ -1036,3 +1036,11 @@ h2 { font-size: 1.35rem; margin-bottom: .35rem; }
 .resume-actions { display: flex; gap: .5rem; align-items: center; }
 .btn-resume { background: var(--accent); color: var(--btn-text); border: none; border-radius: 8px; padding: .4rem .9rem; font-size: .85rem; font-weight: 600; cursor: pointer; }
 .resume-discard { background: none; border: none; color: var(--sub); font-size: .85rem; cursor: pointer; text-decoration: underline; }
+.modal-overlay { position: fixed; inset: 0; background: rgba(0,0,0,.5); z-index: 150; display: flex; align-items: flex-end; justify-content: center; }
+.modal-overlay.hidden { display: none; }
+.modal-panel { background: var(--surface); border-radius: 16px 16px 0 0; padding: 1.25rem 1rem 2rem; width: 100%; max-width: 480px; }
+.modal-hd { display: flex; justify-content: space-between; align-items: center; margin-bottom: .75rem; }
+.modal-title { font-weight: 600; font-size: 1rem; }
+.edit-modal-surah { color: var(--sub); font-size: .88rem; margin-bottom: .75rem; }
+.queue-edit-btn { background: none; border: none; color: var(--sub); font-size: 1rem; cursor: pointer; padding: .25rem .4rem; border-radius: 6px; }
+.queue-edit-btn:hover { color: var(--accent); }

@@ -1799,11 +1799,67 @@ function renderQueue(items) {
       dueSpan.textContent = dueText;
       row.appendChild(main);
       row.appendChild(dueSpan);
+      // Edit button (only for surah range items, not juz items)
+      if (item.item_id.match(/^surah-\d+-ayat-\d+-\d+$/)) {
+        const editBtn = document.createElement('button');
+        editBtn.className = 'queue-edit-btn';
+        editBtn.setAttribute('aria-label', 'Edit range');
+        editBtn.textContent = '✎';
+        editBtn.addEventListener('click', (e) => {
+          e.stopPropagation();
+          openEditModal(item.item_id);
+        });
+        row.appendChild(editBtn);
+      }
       section.appendChild(row);
     });
     container.appendChild(section);
   });
 }
+
+// ── Edit range modal ──────────────────────────────────────────────────────
+let editingItemId = null;
+
+function openEditModal(itemId) {
+  editingItemId = itemId;
+  const m = itemId.match(/^surah-(\d+)-ayat-(\d+)-(\d+)$/);
+  if (!m) return;
+  const [, surah, from, to] = m;
+  const surahName = SURAHS.find(s => s[0] === parseInt(surah, 10))?.[1] ?? `Surah ${surah}`;
+  document.getElementById('edit-modal-surah').textContent = `${surahName} (Surah ${surah})`;
+  document.getElementById('edit-range-from').value = from;
+  document.getElementById('edit-range-to').value = to;
+  document.getElementById('edit-range-error').classList.add('hidden');
+  document.getElementById('edit-range-modal').classList.remove('hidden');
+}
+
+document.getElementById('edit-modal-close').addEventListener('click', () => {
+  document.getElementById('edit-range-modal').classList.add('hidden');
+});
+
+document.getElementById('edit-range-save-btn').addEventListener('click', async () => {
+  if (!editingItemId) return;
+  const m = editingItemId.match(/^surah-(\d+)-ayat-\d+-\d+$/);
+  if (!m) return;
+  const surah = parseInt(m[1], 10);
+  const from = parseInt(document.getElementById('edit-range-from').value, 10);
+  const to = parseInt(document.getElementById('edit-range-to').value, 10);
+  if (isNaN(from) || isNaN(to) || from < 1 || to < from) {
+    document.getElementById('edit-range-error').textContent = 'Enter a valid range.';
+    document.getElementById('edit-range-error').classList.remove('hidden');
+    return;
+  }
+  const { status, data } = await apiFetch('PUT', `/api/items/${editingItemId}/range`, {
+    user_id: state.userId, surah, from, to,
+  });
+  if (status === 200) {
+    document.getElementById('edit-range-modal').classList.add('hidden');
+    await loadQueue();
+  } else {
+    document.getElementById('edit-range-error').textContent = data?.message ?? data?.error ?? 'Error saving.';
+    document.getElementById('edit-range-error').classList.remove('hidden');
+  }
+});
 
 // ── Daily notifications ────────────────────────────────────────────────────
 function getNotifSettings() {
