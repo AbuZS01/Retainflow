@@ -1541,6 +1541,9 @@ function showSessionComplete() {
   clearSession();
   const streak = incrementStreak();
   haptic([40, 20, 40, 20, 80]);
+  // Dismiss any lingering undo toast
+  const toast = document.getElementById('app-toast');
+  if (toast) { clearTimeout(toast._timer); toast.classList.remove('toast-show'); }
   document.getElementById('complete-count').textContent  = state.sessionDone;
   document.getElementById('complete-streak').textContent = streak;
   showView('view-complete');
