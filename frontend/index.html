@@ -230,17 +230,25 @@
       </div>
 
       <!-- Daily goal progress -->
-      <div id="goal-bar" class="goal-bar hidden">
-        <div class="goal-bar-top">
-          <span id="goal-label" class="goal-label">0 / 10 today</span>
-          <button id="goal-edit-btn" class="goal-edit-btn" aria-label="Change daily goal">Change goal</button>
+      <div id="goal-bar" class="goal-ring-wrap hidden">
+        <div class="goal-ring-left">
+          <svg class="goal-ring-svg" viewBox="0 0 64 64" aria-hidden="true">
+            <circle class="goal-ring-track" cx="32" cy="32" r="28"/>
+            <circle class="goal-ring-fill" id="goal-ring-fill" cx="32" cy="32" r="28"/>
+          </svg>
+          <div class="goal-ring-label">
+            <span id="goal-done-num" class="goal-done-num">0</span>
+            <span class="goal-ring-of">/ <span id="goal-total-num">10</span></span>
+          </div>
         </div>
-        <div class="goal-track"><div id="goal-fill" class="goal-fill"></div></div>
-        <!-- Inline goal editor — shown when "Change goal" is clicked -->
-        <div id="goal-editor" class="goal-editor hidden">
-          <input id="goal-input" type="number" min="1" max="200" class="goal-input" aria-label="Daily goal" />
-          <button id="goal-save-btn" class="goal-save-btn">Save</button>
-          <button id="goal-cancel-btn" class="goal-cancel-btn">✕</button>
+        <div class="goal-ring-right">
+          <span class="goal-ring-caption">today's goal</span>
+          <button id="goal-edit-btn" class="goal-edit-btn">Change goal</button>
+          <div id="goal-editor" class="goal-editor hidden">
+            <input id="goal-input" type="number" min="1" max="200" class="goal-input" aria-label="Daily goal" />
+            <button id="goal-save-btn" class="goal-save-btn">Save</button>
+            <button id="goal-cancel-btn" class="goal-cancel-btn">✕</button>
+          </div>
         </div>
       </div>
 

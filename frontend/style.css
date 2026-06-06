@@ -440,13 +440,19 @@ h2 { font-size: 1.35rem; margin-bottom: .35rem; }
 }
 
 /* ── Daily goal bar ───────────────────────────────────────────────────────── */
-.goal-bar { margin-top: 1rem; }
-.goal-bar-top { display: flex; justify-content: space-between; align-items: center; margin-bottom: .35rem; }
-.goal-label { font-size: .8rem; color: var(--sub); }
+.goal-ring-wrap { display: flex; align-items: center; gap: 1rem; margin-bottom: .75rem; }
+.goal-ring-wrap.hidden { display: none; }
+.goal-ring-left { position: relative; flex-shrink: 0; width: 64px; height: 64px; }
+.goal-ring-svg { width: 64px; height: 64px; transform: rotate(-90deg); }
+.goal-ring-track { fill: none; stroke: var(--border); stroke-width: 6; }
+.goal-ring-fill { fill: none; stroke: var(--accent); stroke-width: 6; stroke-linecap: round; stroke-dasharray: 175.9; stroke-dashoffset: 175.9; transition: stroke-dashoffset .5s ease; }
+.goal-ring-label { position: absolute; inset: 0; display: flex; align-items: center; justify-content: center; flex-direction: column; line-height: 1; }
+.goal-done-num { font-size: 1.1rem; font-weight: 700; color: var(--accent); }
+.goal-ring-of { font-size: .65rem; color: var(--sub); }
+.goal-ring-right { display: flex; flex-direction: column; gap: .3rem; }
+.goal-ring-caption { font-size: .75rem; color: var(--sub); text-transform: uppercase; letter-spacing: .05em; }
 .goal-edit-btn { background: none; border: none; color: var(--accent); font-size: .75rem; cursor: pointer; padding: 0; }
 .goal-edit-btn:hover { text-decoration: underline; }
-.goal-track { height: 4px; background: var(--border); border-radius: 2px; overflow: hidden; }
-.goal-fill { height: 100%; background: var(--accent); border-radius: 2px; transition: width .4s ease; width: 0%; }
 
 /* ── Goal inline editor ───────────────────────────────────────────────────── */
 .goal-editor { display: flex; align-items: center; gap: .4rem; margin-top: .5rem; }

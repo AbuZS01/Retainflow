@@ -812,14 +812,18 @@ function incrementTodayCount() {
 }
 
 function updateGoalBar() {
-  const goal    = getDailyGoal();
-  const done    = getTodayCount();
-  const bar     = document.getElementById('goal-bar');
-  const label   = document.getElementById('goal-label');
-  const fill    = document.getElementById('goal-fill');
+  const goal = getDailyGoal();
+  const done = getTodayCount();
+  const bar  = document.getElementById('goal-bar');
+  if (!bar) return;
+  if (goal <= 0) { bar.classList.add('hidden'); return; }
   bar.classList.remove('hidden');
-  label.textContent = `${done} / ${goal} today`;
-  fill.style.width  = `${Math.min(100, (done / goal) * 100)}%`;
+  document.getElementById('goal-done-num').textContent = String(done);
+  document.getElementById('goal-total-num').textContent = String(goal);
+  document.getElementById('goal-input').value = String(goal);
+  const circumference = 175.9; // 2 * π * 28
+  const pct = Math.min(done / goal, 1);
+  document.getElementById('goal-ring-fill').style.strokeDashoffset = String(circumference * (1 - pct));
 }
 
 document.getElementById('goal-edit-btn').addEventListener('click', () => {
