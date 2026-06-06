@@ -518,7 +518,7 @@
       <div id="stats-heatmap" class="stats-heatmap"></div>
 
       <p class="stats-section-title">Quality breakdown</p>
-      <div id="stats-quality" class="stats-quality-wrap"></div>
+      <div id="stats-quality"></div>
 
       <p class="stats-section-title">Recent reviews</p>
       <div id="stats-log" class="stats-log-list"></div>
@@ -550,7 +550,6 @@
   </nav>
   <!-- Playback bottom sheet — fixed, visible during review -->
   <div id="playback-sheet" class="playback-sheet hidden" role="region" aria-label="Audio playback">
-    <div class="ps-pill"></div>
     <div class="ps-top-row">
       <span id="audio-ayah-label" class="ps-ayah-label"></span>
       <select id="reciter-select" class="reciter-select" aria-label="Choose reciter">
@@ -566,11 +565,10 @@
       <span id="ps-time-rem" class="ps-time">0:00</span>
     </div>
     <div class="ps-controls">
-      <button id="ps-prev"       class="ps-btn" aria-label="Previous ayah">⏮</button>
+      <button id="ps-prev"       class="ps-btn" aria-label="Previous ayah">◄◄</button>
       <button id="ps-replay"     class="ps-btn" aria-label="Replay ayah">↺</button>
       <button id="audio-play-btn" class="ps-btn ps-play" aria-label="Play audio">▶</button>
-      <button id="ps-next-ayah"  class="ps-btn" aria-label="Next ayah">⏭</button>
-      <button id="ps-next-verse" class="ps-btn ps-next-verse-btn" aria-label="Next verse">Next →</button>
+      <button id="ps-next-ayah"  class="ps-btn" aria-label="Next ayah">►►</button>
     </div>
     <div class="ps-bottom-row">
       <div class="loop-btns">

@@ -1,4 +1,4 @@
-/* Service worker cache: retainflow-v37 */
+/* Service worker cache: retainflow-v38 */
 
 *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 
@@ -550,11 +550,6 @@ h2 { font-size: 1.35rem; margin-bottom: .35rem; }
 .juz-surah-meta { font-size: .75rem; color: var(--sub); }
 
 /* ── Notes ────────────────────────────────────────────────────────────────── */
-.notes-indicator { font-size: .7rem; color: var(--accent); cursor: pointer; padding: .55rem .45rem; min-height: 2.75rem; border-radius: 4px; display: flex; align-items: center; }
-.notes-indicator:hover { background: var(--surface); }
-.notes-row { grid-column: 1 / -1; padding: .5rem .5rem .75rem; }
-.notes-textarea { width: 100%; background: var(--bg); border: 1px solid var(--border); border-radius: 6px; color: var(--text); font-size: .82rem; line-height: 1.5; padding: .5rem .65rem; resize: none; font-family: inherit; outline: none; }
-.notes-textarea:focus { border-color: var(--accent); }
 
 /* ── Stats view ───────────────────────────────────────────────────────────── */
 .stats-kpi-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: .75rem; margin-bottom: 1.5rem; }
@@ -722,7 +717,6 @@ h2 { font-size: 1.35rem; margin-bottom: .35rem; }
 }
 .playback-sheet.hidden { display: none; }
 .playback-sheet.sheet-dismissed { transform: translateY(110%); opacity: 0; }
-.ps-pill { width: 36px; height: 4px; background: var(--border); border-radius: 2px; margin: 0 auto 0.6rem; }
 .ps-top-row { display: flex; align-items: center; justify-content: space-between; margin-bottom: 0.4rem; gap: 0.5rem; }
 .ps-ayah-label { font-size: 0.78rem; color: var(--sub); flex: 1; }
 .playback-sheet .reciter-select { font-size: 0.72rem; border: 1px solid var(--border); border-radius: 6px; padding: 0.2rem 0.4rem; background: var(--bg); color: var(--text); max-width: 130px; }
@@ -737,7 +731,6 @@ h2 { font-size: 1.35rem; margin-bottom: .35rem; }
 .ps-btn:hover { background: var(--bg); }
 .ps-play { width: 44px; height: 44px; background: var(--accent); color: #fff; border-radius: 50%; font-size: 1.1rem; display: flex; align-items: center; justify-content: center; }
 .ps-play:hover { opacity: 0.88; background: var(--accent); }
-.ps-next-verse-btn { font-size: 0.8rem; font-weight: 600; color: var(--accent); padding: 0.3rem 0.6rem; border-radius: 14px; border: 1.5px solid var(--accent); background: transparent; cursor: pointer; white-space: nowrap; }
 
 .ps-bottom-row { display: flex; align-items: center; justify-content: center; gap: 0.5rem; flex-wrap: wrap; }
 

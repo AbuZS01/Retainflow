@@ -537,19 +537,6 @@ function renderDueList() {
     idSpan.className = 'item-id';
     idSpan.textContent = prettyItemId(item.item_id);
 
-    const meta = document.createElement('span');
-    meta.className = 'item-meta';
-    meta.textContent = `×${item.repetitions} rep`;
-
-    const notesBtn = document.createElement('button');
-    notesBtn.className = 'notes-indicator';
-    notesBtn.title = item.notes ? 'Edit note' : 'Add note';
-    notesBtn.textContent = item.notes ? '📝' : '＋note';
-    notesBtn.addEventListener('click', (e) => {
-      e.stopPropagation();
-      toggleNotes(row, item);
-    });
-
     const deleteBtn = document.createElement('button');
     deleteBtn.className = 'delete-btn';
     deleteBtn.title = 'Remove';
@@ -559,8 +546,6 @@ function renderDueList() {
 
     const rightGroup = document.createElement('div');
     rightGroup.style.cssText = 'display:flex;align-items:center;gap:.5rem';
-    rightGroup.appendChild(meta);
-    rightGroup.appendChild(notesBtn);
     rightGroup.appendChild(deleteBtn);
 
     row.appendChild(idSpan);
@@ -575,31 +560,6 @@ function renderDueList() {
   });
 }
 
-function toggleNotes(row, item) {
-  const existing = row.querySelector('.notes-row');
-  if (existing) { existing.remove(); return; }
-  const noteRow = document.createElement('div');
-  noteRow.className = 'notes-row';
-  const ta = document.createElement('textarea');
-  ta.className = 'notes-textarea';
-  ta.rows = 2;
-  ta.placeholder = 'Personal note…';
-  ta.value = item.notes ?? '';
-  let saveTimer = null;
-  ta.addEventListener('input', () => {
-    clearTimeout(saveTimer);
-    saveTimer = setTimeout(async () => {
-      item.notes = ta.value;
-      await apiFetch('PUT', `/api/items/${item.item_id}/notes`, { notes: ta.value, user_id: state.userId });
-      const btn = row.querySelector('.notes-indicator');
-      if (btn) { btn.textContent = ta.value ? '📝' : '＋note'; btn.title = ta.value ? 'Edit note' : 'Add note'; }
-    }, 600);
-  });
-  noteRow.appendChild(ta);
-  row.style.flexWrap = 'wrap';
-  row.appendChild(noteRow);
-  ta.focus();
-}
 
 async function removeItem(itemId) {
   // Send user_id so the server can verify ownership
@@ -1143,15 +1103,6 @@ document.getElementById('ps-next-ayah').addEventListener('click', () => {
   }
 });
 
-document.getElementById('ps-next-verse').addEventListener('click', () => {
-  // Skip to next review item in queue
-  stopAudio();
-  const curIdx = state.dueItems.indexOf(state.reviewItem);
-  const nextIdx = curIdx + 1;
-  if (nextIdx < state.dueItems.length) {
-    startReview(state.dueItems[nextIdx]);
-  }
-});
 
 document.getElementById('ps-track').addEventListener('click', (e) => {
   const audio = audioState.audio;

@@ -1,4 +1,4 @@
-const CACHE = 'retainflow-v37';
+const CACHE = 'retainflow-v38';
 const SHELL = ['/', '/index.html', '/style.css', '/app.js', '/manifest.json'];
 
 self.addEventListener('install', (e) => {
