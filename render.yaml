@@ -1,0 +1,16 @@
+services:
+  - type: web
+    name: muraja-ah
+    runtime: docker
+    dockerfilePath: ./Dockerfile
+    disk:
+      name: muraja-data
+      mountPath: /data
+      sizeGB: 1
+    envVars:
+      - key: DB_PATH
+        value: /data/muraja.db
+      - key: PORT
+        value: 3000
+      - key: ALLOWED_ORIGINS
+        sync: false   # set manually in Render dashboard after first deploy
