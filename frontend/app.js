@@ -44,6 +44,18 @@ let state = {
   sessionDone: 0,
 };
 
+function saveSession() {
+  if (state.dueItems.length === 0) return;
+  localStorage.setItem('rf_session', JSON.stringify({
+    pendingIds: state.dueItems.map(i => i.item_id),
+    total: state.sessionTotal,
+  }));
+}
+function clearSession() { localStorage.removeItem('rf_session'); }
+function getSavedSession() {
+  try { return JSON.parse(localStorage.getItem('rf_session') ?? 'null'); } catch { return null; }
+}
+
 // ── Dark mode (with system preference fallback) ────────────────────────────
 function getSystemTheme() {
   return window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
@@ -413,6 +425,16 @@ async function loadDashboard() {
 
   const { data } = await apiFetch('GET', `/api/items/${state.userId}`);
   state.dueItems = Array.isArray(data) ? data : [];
+
+  const saved = getSavedSession();
+  const resumeBanner = document.getElementById('resume-banner');
+  if (saved && saved.pendingIds?.length > 0) {
+    const left = saved.pendingIds.length;
+    document.getElementById('resume-label').textContent = `Session in progress — ${left} item${left !== 1 ? 's' : ''} left`;
+    resumeBanner.classList.remove('hidden');
+  } else {
+    resumeBanner.classList.add('hidden');
+  }
 
   if (state.atLimit) {
     document.getElementById('limit-banner').classList.remove('hidden');
@@ -1112,6 +1134,7 @@ function startReview(item) {
   if (state.sessionTotal === 0) {
     state.sessionTotal = state.dueItems.length;
     state.sessionDone  = 0;
+    saveSession();
   }
   state.reviewItem = item;
   document.getElementById('review-item-id').textContent = item.item_id;
@@ -1153,6 +1176,7 @@ async function submitReview(quality) {
   await apiFetch('PUT', `/api/items/${state.reviewItem.item_id}/review`, { quality, user_id: state.userId });
   state.sessionDone++;
   state.dueItems = state.dueItems.filter((i) => i.item_id !== state.reviewItem.item_id);
+  if (state.dueItems.length > 0) saveSession(); else clearSession();
   state.reviewItem = null;
 
   if (state.dueItems.length === 0) {
@@ -1164,6 +1188,7 @@ async function submitReview(quality) {
 
 document.getElementById('review-back-btn').addEventListener('click', () => {
   stopAudio();
+  clearSession();
   loadDashboard();
 });
 
@@ -1385,6 +1410,7 @@ async function loadStats() {
 
 // ── Session complete ───────────────────────────────────────────────────────
 function showSessionComplete() {
+  clearSession();
   const streak = incrementStreak();
   haptic([40, 20, 40, 20, 80]);
   document.getElementById('complete-count').textContent  = state.sessionDone;
@@ -1394,6 +1420,20 @@ function showSessionComplete() {
 
 document.getElementById('complete-add-btn').addEventListener('click', openAddView);
 document.getElementById('complete-home-btn').addEventListener('click', loadDashboard);
+
+document.getElementById('resume-btn').addEventListener('click', () => {
+  const saved = getSavedSession();
+  if (!saved || !saved.pendingIds?.length) return;
+  const pendingSet = new Set(saved.pendingIds);
+  state.dueItems = state.dueItems.filter(i => pendingSet.has(i.item_id));
+  state.sessionTotal = saved.total;
+  state.sessionDone  = saved.total - state.dueItems.length;
+  if (state.dueItems.length > 0) startReview(state.dueItems[0]);
+});
+document.getElementById('resume-discard-btn').addEventListener('click', () => {
+  clearSession();
+  document.getElementById('resume-banner').classList.add('hidden');
+});
 
 // ── Toast helper ───────────────────────────────────────────────────────────
 function showToast(html, durationMs = 4000) {

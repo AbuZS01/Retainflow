@@ -1031,3 +1031,8 @@ h2 { font-size: 1.35rem; margin-bottom: .35rem; }
 .diff-hint { display: block; font-size: .72rem; font-weight: 400; opacity: .7; margin-top: 2px; }
 .queue-search-input { width: 100%; padding: .6rem .9rem; border: 1px solid var(--border); border-radius: 10px; background: var(--card-bg); color: var(--text); font-size: .95rem; margin-bottom: 1rem; }
 .queue-search-input:focus { outline: 2px solid var(--accent); outline-offset: 1px; }
+.resume-banner { background: var(--surface); border: 1px solid var(--accent); border-radius: 10px; padding: .75rem 1rem; display: flex; align-items: center; justify-content: space-between; gap: .75rem; margin-bottom: .75rem; }
+.resume-banner.hidden { display: none; }
+.resume-actions { display: flex; gap: .5rem; align-items: center; }
+.btn-resume { background: var(--accent); color: var(--btn-text); border: none; border-radius: 8px; padding: .4rem .9rem; font-size: .85rem; font-weight: 600; cursor: pointer; }
+.resume-discard { background: none; border: none; color: var(--sub); font-size: .85rem; cursor: pointer; text-decoration: underline; }
