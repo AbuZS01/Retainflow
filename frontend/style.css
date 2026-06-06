@@ -1057,3 +1057,11 @@ h2 { font-size: 1.35rem; margin-bottom: .35rem; }
 .sync-qr-wrap.hidden { display: none; }
 .sync-qr-wrap img { border-radius: 8px; }
 .sync-qr-hint { font-size: .78rem; color: var(--sub); text-align: center; }
+
+.juz-single-wrap { margin-top: .75rem; }
+.juz-single-wrap.hidden { display: none; }
+.juz-single-btn { width: 100%; background: var(--surface); border: 2px solid var(--accent); border-radius: 10px; padding: .7rem; font-size: .95rem; font-weight: 600; color: var(--accent); cursor: pointer; }
+.juz-single-sub { font-size: .8rem; color: var(--sub); margin-top: .35rem; text-align: center; }
+.juz-review-summary { padding: 1rem; background: var(--surface); border-radius: 10px; text-align: center; }
+.juz-review-summary h3 { color: var(--accent); margin-bottom: .5rem; }
+.juz-review-surahs { font-size: .88rem; color: var(--sub); line-height: 1.6; }

@@ -648,6 +648,7 @@ function openAddView() {
   document.getElementById('range-selector').classList.add('hidden');
   document.getElementById('add-error').classList.add('hidden');
   document.getElementById('juz-surahs').classList.add('hidden');
+  document.getElementById('juz-single-wrap').classList.add('hidden');
   activeJuz = null;
   selectedSurah = null;
   selectedDifficulty = 'fresh';
@@ -1026,6 +1027,7 @@ function playFromIdx(idx) {
 }
 
 function initAudioForItem(itemId) {
+  if (itemId.match(/^juz-\d+$/)) return;
   stopAudio();
   const parsed = parseItemAyahs(itemId);
   const sheet = document.getElementById('playback-sheet');
@@ -1163,7 +1165,25 @@ function startReview(item) {
   }
   state.reviewItem = item;
   document.getElementById('review-item-id').textContent = item.item_id;
-  applyTextMode(filterContent(item.content ?? ''));
+  if (item.item_id.match(/^juz-(\d+)$/)) {
+    const juzNum = parseInt(item.item_id.split('-')[1], 10);
+    const surahs = getSurahsInJuz(juzNum);
+    const contentEl = document.getElementById('review-content');
+    contentEl.innerHTML = '';
+    const wrap = document.createElement('div');
+    wrap.className = 'juz-review-summary';
+    const title = document.createElement('h3');
+    title.textContent = `Juz ${juzNum}`;
+    const surahList = document.createElement('p');
+    surahList.className = 'juz-review-surahs';
+    surahList.textContent = surahs.map(s => s.name).join(' · ');
+    wrap.appendChild(title);
+    wrap.appendChild(surahList);
+    contentEl.appendChild(wrap);
+    document.getElementById('reveal-btn').classList.add('hidden');
+  } else {
+    applyTextMode(filterContent(item.content ?? ''));
+  }
   updateTextModeBtn();
   updateTranslationBtn();
   updateProgressBar();
@@ -1349,6 +1369,8 @@ function relativeDay(ts) {
 }
 
 function prettyItemId(id) {
+  const juzMatch = id.match(/^juz-(\d+)$/);
+  if (juzMatch) return `Juz ${juzMatch[1]}`;
   const m = id.match(/^surah-(\d+)-ayat-(\d+)-(\d+)$/);
   if (!m) return id;
   const surahNum = parseInt(m[1], 10);
@@ -1648,6 +1670,38 @@ async function addJuzItems(juzNum, chunkSize) {
   await loadDashboard();
 }
 
+async function addSingleJuzItem(juzNum) {
+  const preset = DIFFICULTY_INITIAL[selectedDifficulty];
+  const { status, data } = await apiFetch('POST', '/api/items', {
+    user_id: state.userId,
+    item_id: `juz-${juzNum}`,
+    content: '',
+    initial: {
+      interval:      preset.interval,
+      ease_factor:   preset.ease_factor,
+      repetitions:   preset.repetitions,
+      next_due_date: preset.next_due_date(),
+    },
+  });
+  const statusEl = document.getElementById('juz-add-status');
+  if (status === 201) {
+    localStorage.setItem('rf_has_items', 'true');
+    if (statusEl) statusEl.textContent = `Juz ${juzNum} added to your queue.`;
+    await loadDashboard();
+  } else if (status === 409) {
+    if (statusEl) statusEl.textContent = `Juz ${juzNum} is already in your queue.`;
+  } else if (status === 403) {
+    state.atLimit = true;
+    if (statusEl) statusEl.textContent = data.message ?? 'Limit reached.';
+  } else {
+    if (statusEl) statusEl.textContent = data?.error ?? 'Error adding item.';
+  }
+}
+
+document.getElementById('juz-single-btn').addEventListener('click', () => {
+  if (activeJuz) addSingleJuzItem(activeJuz);
+});
+
 function selectJuz(juzNum, btn) {
   // Toggle off if same juz clicked again
   if (activeJuz === juzNum) {
@@ -1725,6 +1779,8 @@ function selectJuz(juzNum, btn) {
     container.appendChild(row);
   });
   container.classList.remove('hidden');
+  document.getElementById('juz-single-num').textContent = juzNum;
+  document.getElementById('juz-single-wrap').classList.remove('hidden');
 }
 
 // ── Difficulty calibration ─────────────────────────────────────────────────
