@@ -1536,10 +1536,106 @@ function showToast(html, durationMs = 4000, { top = false } = {}) {
   el._timer = setTimeout(() => el.classList.remove('toast-show'), durationMs);
 }
 
-// ── Upgrade placeholder ────────────────────────────────────────────────────
-document.getElementById('upgrade-btn').addEventListener('click', () => {
-  showToast('✨ Upgrade coming soon — <a href="mailto:amrrehmandin@gmail.com">email us</a> for early access');
+// ── Premium / Stripe checkout ──────────────────────────────────────────────
+async function startCheckout() {
+  showToast('Opening secure checkout…', 2000);
+  const { status, data } = await apiFetch('POST', '/api/billing/checkout', { user_id: state.userId });
+  if (status === 200 && data?.url) {
+    window.location.href = data.url; // Stripe-hosted page
+  } else if (status === 503) {
+    showToast('✨ Premium opens soon — <a href="mailto:amrrehmandin@gmail.com">email us</a> for early access');
+  } else {
+    showToast('Could not start checkout. Please try again.');
+  }
+}
+document.getElementById('upgrade-btn').addEventListener('click', startCheckout);
+const settingsUpgrade = document.getElementById('settings-upgrade-btn');
+if (settingsUpgrade) settingsUpgrade.addEventListener('click', startCheckout);
+
+// Reflect tier in the UI; hide upgrade prompts for premium users.
+async function refreshTier() {
+  const { status, data } = await apiFetch('GET', `/api/me/${state.userId}`);
+  if (status !== 200) return;
+  const isPremium = data?.tier === 'premium';
+  document.body.classList.toggle('is-premium', isPremium);
+  const ps = document.getElementById('premium-status');
+  const su = document.getElementById('settings-upgrade-btn');
+  if (isPremium && ps) ps.textContent = '✓ Lifetime Premium active — unlimited ranges. Jazak Allahu khayran.';
+  if (isPremium && su) su.style.display = 'none';
+  if (isPremium) document.getElementById('limit-banner')?.classList.add('hidden');
+}
+
+// Handle Stripe redirect back to the app.
+(function handleUpgradeReturn() {
+  const p = new URLSearchParams(window.location.search);
+  const r = p.get('upgrade');
+  if (!r) return;
+  window.history.replaceState({}, '', window.location.pathname);
+  if (r === 'success') {
+    // Webhook may lag a second or two; poll briefly.
+    let tries = 0;
+    const poll = setInterval(async () => {
+      await refreshTier();
+      if (document.body.classList.contains('is-premium') || ++tries > 5) {
+        clearInterval(poll);
+        if (document.body.classList.contains('is-premium'))
+          showToast('✓ Premium unlocked — unlimited ranges enabled.');
+      }
+    }, 1500);
+  } else if (r === 'cancelled') {
+    showToast('Checkout cancelled — no charge made.');
+  }
+})();
+
+
+// ── Recovery code, export, restore ─────────────────────────────────────────
+function copyText(text, okMsg) {
+  const done = () => showToast(okMsg ?? 'Copied');
+  if (navigator.clipboard?.writeText) {
+    navigator.clipboard.writeText(text).then(done).catch(() => done());
+  } else {
+    const ta = document.createElement('textarea');
+    ta.value = text; document.body.appendChild(ta); ta.select();
+    try { document.execCommand('copy'); } catch {}
+    ta.remove(); done();
+  }
+}
+
+function populateRecoveryUI() {
+  const code = state.userId;
+  const obCode = document.getElementById('ob-recovery-code');
+  const setCode = document.getElementById('settings-recovery-code');
+  if (obCode) obCode.textContent = code;
+  if (setCode) setCode.textContent = code;
+}
+
+document.getElementById('ob-recovery-copy')?.addEventListener('click',
+  () => copyText(state.userId, 'Recovery code copied — keep it safe'));
+document.getElementById('settings-recovery-copy')?.addEventListener('click',
+  () => copyText(state.userId, 'Recovery code copied — keep it safe'));
+
+document.getElementById('export-btn')?.addEventListener('click', () => {
+  // Direct download via the export endpoint (sets Content-Disposition).
+  window.location.href = `/api/export/${encodeURIComponent(state.userId)}`;
 });
+
+document.getElementById('restore-code-btn')?.addEventListener('click', () => {
+  const input = document.getElementById('restore-code-input');
+  const code = (input?.value ?? '').trim();
+  if (!code || code.length > 200) { showToast('Enter a valid recovery code'); return; }
+  if (code === state.userId) { showToast('That code is already active'); return; }
+  switchProfile({ name: 'Restored Profile', userId: code });
+  showToast('Profile restored');
+});
+
+// Ask the browser to persist storage so iOS/Safari is less likely to evict it.
+async function requestPersistentStorage() {
+  try {
+    if (navigator.storage?.persisted && !(await navigator.storage.persisted())) {
+      await navigator.storage.persist();
+    }
+  } catch {}
+}
 
 // ── Juz browser ────────────────────────────────────────────────────────────
 // [surah_number, transliteration_name, total_ayahs]
@@ -2183,6 +2279,7 @@ function renderObSuggestions(packs) {
       setTimeout(() => {
         document.getElementById('ob-step-2').classList.add('hidden');
         document.getElementById('ob-step-3').classList.remove('hidden');
+        populateRecoveryUI();
       }, 600);
     });
     container.appendChild(row);
@@ -2237,6 +2334,53 @@ updateTextModeBtn();
 initProfiles();
 updateNotifUI();
 scheduleNotification();
+
+
+// ── Install prompt (PWA) ───────────────────────────────────────────────────
+let deferredInstall = null;
+const isStandalone = window.matchMedia('(display-mode: standalone)').matches ||
+  window.navigator.standalone === true;
+const isIOS = /iphone|ipad|ipod/i.test(navigator.userAgent) && !window.MSStream;
+
+window.addEventListener('beforeinstallprompt', (e) => {
+  e.preventDefault();
+  deferredInstall = e;
+  maybeShowInstallBanner();
+});
+
+function maybeShowInstallBanner() {
+  if (isStandalone) return;
+  if (localStorage.getItem('rf_install_dismissed') === '1') return;
+  const banner = document.getElementById('install-banner');
+  const text = document.getElementById('install-banner-text');
+  const btn = document.getElementById('install-banner-btn');
+  if (!banner) return;
+  if (isIOS) {
+    // iOS has no install API — show the manual Share → Add to Home Screen hint.
+    text.textContent = "Add to Home Screen so your progress isn't cleared: tap Share ⬆ then “Add to Home Screen”.";
+    btn.style.display = 'none';
+    banner.classList.remove('hidden');
+  } else if (deferredInstall) {
+    banner.classList.remove('hidden');
+  }
+}
+
+document.getElementById('install-banner-btn')?.addEventListener('click', async () => {
+  if (!deferredInstall) return;
+  deferredInstall.prompt();
+  await deferredInstall.userChoice;
+  deferredInstall = null;
+  document.getElementById('install-banner').classList.add('hidden');
+});
+document.getElementById('install-banner-dismiss')?.addEventListener('click', () => {
+  localStorage.setItem('rf_install_dismissed', '1');
+  document.getElementById('install-banner').classList.add('hidden');
+});
+
+requestPersistentStorage();
+populateRecoveryUI();
+refreshTier();
+maybeShowInstallBanner();
 
 if (!localStorage.getItem('rf_has_visited')) {
   // First visit — show landing page

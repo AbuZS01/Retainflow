@@ -51,7 +51,7 @@
     "featureList": [
       "Spaced repetition (SM-2) scheduling",
       "Full Quran text — Arabic and English translation",
-      "Audio recitation by four reciters",
+      "Audio recitation by multiple reciters",
       "Progress tracking and streaks",
       "Works offline as a PWA",
       "No account or sign-up required"
@@ -67,29 +67,24 @@
   <link rel="dns-prefetch" href="https://everyayah.com" />
 
   <!-- ── Fonts ────────────────────────────────────────────────────────── -->
-  <!-- Scheherazade New: preloaded as it is above-the-fold in the review view -->
+  <!-- Scheherazade New: preloaded as it is above-the-fold in the review view.
+       Plain stylesheet (no inline onload) so CSP can drop 'unsafe-inline' scripts;
+       display=swap in the URL prevents invisible-text blocking. -->
   <link rel="preload" as="style" href="https://fonts.googleapis.com/css2?family=Scheherazade+New:wght@400;700&family=Cormorant+Garamond:ital,wght@0,400;0,500;0,600;1,400;1,500&display=swap" />
-  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Scheherazade+New:wght@400;700&family=Cormorant+Garamond:ital,wght@0,400;0,500;0,600;1,400;1,500&display=swap" media="print" onload="this.media='all'" />
-  <noscript>
-    <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Scheherazade+New:wght@400;700&family=Cormorant+Garamond:ital,wght@0,400;0,500;0,600;1,400;1,500&display=swap" />
-  </noscript>
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Scheherazade+New:wght@400;700&family=Cormorant+Garamond:ital,wght@0,400;0,500;0,600;1,400;1,500&display=swap" />
 
   <link rel="stylesheet" href="style.css" />
 </head>
 <body>
-  <!-- Desktop gate — visible only on non-touch wide screens via CSS -->
-  <div id="desktop-gate" aria-hidden="true">
-    <div class="dg-card">
-      <div class="dg-logo">مراجعة</div>
-      <h1 class="dg-title">muraja'ah</h1>
-      <p class="dg-sub">Quran memorisation, powered by spaced repetition.</p>
-      <p class="dg-instruction">This app is designed for mobile.<br>Scan to open on your phone:</p>
-      <img class="dg-qr" src="https://api.qrserver.com/v1/create-qr-code/?size=200x200&data=https%3A%2F%2Fretainflow.onrender.com&bgcolor=fdf8e1&color=3d2700&margin=2" alt="QR code — scan to open muraja'ah on your phone" width="200" height="200" />
-      <p class="dg-url">retainflow.onrender.com</p>
-    </div>
   </div>
 
   <div id="app">
+
+    <div id="install-banner" class="install-banner hidden" role="note">
+      <span id="install-banner-text">Install muraja'ah for reliable offline reviews</span>
+      <button id="install-banner-btn" class="btn-upgrade" type="button">Install</button>
+      <button id="install-banner-dismiss" class="install-dismiss" type="button" aria-label="Dismiss">✕</button>
+    </div>
 
     <div id="onboarding-overlay" class="onboarding-overlay hidden" role="dialog" aria-label="Welcome to muraja'ah">
       <div class="onboarding-panel">
@@ -129,6 +124,11 @@
           <div class="ob-icon">🌟</div>
           <h2 class="ob-title">You're all set!</h2>
           <p class="ob-desc">Your first items have been added. Let's do a quick review to calibrate the schedule.</p>
+          <div class="recovery-box">
+            <p class="recovery-label">Your recovery code — save it somewhere safe.<br>It's the only way to restore your progress if this device is lost or its storage is cleared.</p>
+            <code id="ob-recovery-code" class="recovery-code"></code>
+            <button id="ob-recovery-copy" class="sync-qr-btn" type="button">Copy code</button>
+          </div>
           <button id="ob-start-btn" class="btn-primary" style="width:100%;margin-top:1rem">Start first review →</button>
           <button id="ob-skip-final-btn" class="ob-skip-btn" style="margin-top:.5rem">Go to dashboard</button>
         </div>
@@ -351,6 +351,26 @@
             <img id="sync-qr-img" src="" alt="Scan to sync profile" width="180" height="180" />
             <p class="sync-qr-hint">Scan on your other device to load this profile</p>
           </div>
+        </div>
+        <!-- Recovery & data -->
+        <div class="profile-sync-section">
+          <p class="profile-notif-label">Recovery &amp; your data</p>
+          <p class="recovery-label">Save this code. If your browser storage is ever cleared (iOS does this after long inactivity), enter it on the sync screen to restore everything.</p>
+          <code id="settings-recovery-code" class="recovery-code"></code>
+          <div class="recovery-actions">
+            <button id="settings-recovery-copy" class="sync-qr-btn" type="button">Copy code</button>
+            <button id="export-btn" class="sync-qr-btn" type="button">Export data (JSON)</button>
+          </div>
+          <div class="recovery-restore">
+            <input id="restore-code-input" class="notif-time-input" type="text" placeholder="Paste a recovery code…" aria-label="Recovery code" />
+            <button id="restore-code-btn" class="sync-qr-btn" type="button">Restore</button>
+          </div>
+        </div>
+        <!-- Premium -->
+        <div class="profile-sync-section" id="premium-section">
+          <p class="profile-notif-label">Premium</p>
+          <p id="premium-status" class="recovery-label">Free plan — 50 ranges. Lifetime Premium unlocks unlimited ranges with a single one-time payment. No subscription.</p>
+          <button id="settings-upgrade-btn" class="btn-upgrade" type="button" style="width:100%">Upgrade — one-time payment</button>
         </div>
       </div>
     </div>

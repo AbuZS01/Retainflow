@@ -7,7 +7,12 @@ import rateLimit from '@fastify/rate-limit';
 import { fileURLToPath } from 'url';
 import path from 'path';
 import { initDb, createUser, addItem, getDueItems, getAllItems, getItem, updateItem, deleteItem, renameItem, searchAyahs, getAyahRange, logReview, getReviewLog, getStats, updateNotes, snoozeItem, undoReview } from './database.js';
-import { applyReview, type ReviewQuality } from './engine.js';
+import { applyReview as applySm2, type ReviewQuality } from './engine.js';
+import { applyReview as applyFsrs } from './fsrs.js';
+import { registerBillingRoutes } from './payments.js';
+
+// Scheduler: FSRS-4.5 by default (set ENGINE=sm2 to roll back instantly).
+const applyReview = (process.env.ENGINE ?? 'fsrs') === 'sm2' ? applySm2 : applyFsrs;
 
 const VALID_QUALITIES = new Set<string>(['forgot', 'hard', 'good', 'easy']);
 
@@ -27,6 +32,18 @@ function requireUserId(user_id: string | undefined, reply: FastifyReply): user_i
 export function buildApp(dbPath: string): FastifyInstance {
   const db = initDb(dbPath);
   const app = Fastify({ logger: false, bodyLimit: 600_000 });
+
+  // One canonical domain — 301 stray hosts (onrender.com, fly.dev, etc.)
+  // so users never split their localStorage identity across origins.
+  const CANONICAL_HOST = process.env.CANONICAL_HOST;
+  if (CANONICAL_HOST) {
+    app.addHook('onRequest', async (req, reply) => {
+      const host = (req.headers.host ?? '').split(':')[0];
+      if (host && host !== CANONICAL_HOST && host !== 'localhost' && host !== '127.0.0.1') {
+        return reply.code(301).redirect(`https://${CANONICAL_HOST}${req.url}`);
+      }
+    });
+  }
 
   // Gzip/Brotli compression for all text responses
   app.register(fastifyCompress, { global: true });
@@ -141,7 +158,9 @@ export function buildApp(dbPath: string): FastifyInstance {
   // DELETE /api/items/:itemId
   app.delete('/api/items/:itemId', async (req, reply) => {
     const { itemId } = req.params as { itemId: string };
-    const { user_id } = (req.body ?? {}) as { user_id?: string };
+    // Prefer query param — some proxies/CDNs strip DELETE request bodies.
+    const q = req.query as { user_id?: string };
+    const user_id = q.user_id ?? ((req.body ?? {}) as { user_id?: string }).user_id;
     if (!requireUserId(user_id, reply)) return;
     try {
       deleteItem(db, user_id, itemId);
@@ -261,6 +280,26 @@ export function buildApp(dbPath: string): FastifyInstance {
     return reply.send(ayahs);
   });
 
+  // GET /api/export/:userId — full data export ("your data is yours")
+  app.get('/api/export/:userId', {
+    config: { rateLimit: { max: 5, timeWindow: '1 minute' } },
+  }, async (req, reply) => {
+    const { userId } = req.params as { userId: string };
+    const items = getAllItems(db, userId);
+    const log = getReviewLog(db, userId, 10_000);
+    const stats = getStats(db, userId);
+    reply.header('Content-Disposition', 'attachment; filename="murajah-export.json"');
+    return reply.send({
+      app: "muraja'ah",
+      exported_at: new Date().toISOString(),
+      user_id: userId,
+      stats, items, review_log: log,
+    });
+  });
+
+  // Stripe billing (one-time lifetime purchase) — no-ops if env not set
+  registerBillingRoutes(app, db);
+
   // Security + cache headers on every response
   app.addHook('onSend', async (req, reply) => {
     reply.header('X-Content-Type-Options', 'nosniff');
@@ -275,12 +314,14 @@ export function buildApp(dbPath: string): FastifyInstance {
       reply.header('Cache-Control', 'no-cache, no-store, must-revalidate');
       reply.header('Content-Security-Policy',
         "default-src 'self'; " +
-        "script-src 'self' 'unsafe-inline'; " +
+        "script-src 'self'; " +
         "style-src 'self' https://fonts.googleapis.com 'unsafe-inline'; " +
         "font-src 'self' https://fonts.gstatic.com; " +
         "media-src https://everyayah.com; " +
         "img-src 'self' data: https://api.qrserver.com; " +
         "connect-src 'self'; " +
+        "object-src 'none'; " +
+        "base-uri 'none'; " +
         "frame-ancestors 'none';"
       );
     } else if (url.endsWith('sw.js')) {
