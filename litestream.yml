@@ -1,0 +1,18 @@
+# Litestream — continuous SQLite replication to Cloudflare R2 (S3-compatible).
+# Env vars to set on Fly/Render (never commit them):
+#   LITESTREAM_ACCESS_KEY_ID      R2 access key
+#   LITESTREAM_SECRET_ACCESS_KEY  R2 secret
+#   R2_BUCKET                     e.g. muraja-backups
+#   R2_ENDPOINT                   https://<accountid>.r2.cloudflarestorage.com
+dbs:
+  - path: ${DB_PATH}
+    replicas:
+      - type: s3
+        bucket: ${R2_BUCKET}
+        path: muraja
+        endpoint: ${R2_ENDPOINT}
+        region: auto
+        force-path-style: true
+        sync-interval: 10s
+        retention: 720h          # keep 30 days of WAL history
+        snapshot-interval: 24h
