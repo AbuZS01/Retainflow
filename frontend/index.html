@@ -358,11 +358,20 @@
         </div>
         <!-- Sync -->
         <div class="profile-sync-section">
+          <p class="profile-notif-label">Arabic text size</p>
+          <div class="arabic-size-row">
+            <button class="ar-size-btn" data-size="1.3">Small</button>
+            <button class="ar-size-btn" data-size="1.55">Medium</button>
+            <button class="ar-size-btn" data-size="1.85">Large</button>
+          </div>
+        </div>
+        <div class="profile-sync-section">
           <p class="profile-notif-label">Sync to another device</p>
+          <p class="recovery-label">Show a QR code to copy this profile onto another phone — scan it there to pick up where you left off.</p>
           <button id="sync-qr-btn" class="sync-qr-btn">Show QR code</button>
           <div id="sync-qr-wrap" class="sync-qr-wrap hidden">
             <img id="sync-qr-img" src="" alt="Scan to sync profile" width="180" height="180" />
-            <p class="sync-qr-hint">Scan on your other device to load this profile</p>
+            <p id="sync-qr-status" class="sync-qr-hint">Scan on your other device to load this profile</p>
           </div>
         </div>
         <!-- Recovery & data -->
@@ -535,7 +544,10 @@
 
     <!-- Stats View -->
     <div id="view-stats" class="view">
-      <h2>Your Progress</h2>
+      <div class="stats-hd">
+        <button id="stats-back-btn" class="btn-icon" aria-label="Back to home">←</button>
+        <h2 style="margin:0">Your Progress</h2>
+      </div>
 
       <div id="stats-grid" class="stats-kpi-grid"></div>
 
@@ -544,9 +556,6 @@
 
       <p class="stats-section-title">Quality breakdown</p>
       <div id="stats-quality"></div>
-
-      <p class="stats-section-title">Recent reviews</p>
-      <div id="stats-log" class="stats-log-list"></div>
     </div>
 
   </div><!-- /#app -->

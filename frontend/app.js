@@ -248,8 +248,14 @@ document.getElementById('sync-qr-btn').addEventListener('click', () => {
     return;
   }
   const url = `${window.location.origin}?sync=${encodeURIComponent(state.userId)}`;
-  document.getElementById('sync-qr-img').src =
-    `https://api.qrserver.com/v1/create-qr-code/?size=180x180&data=${encodeURIComponent(url)}`;
+  const img = document.getElementById('sync-qr-img');
+  const statusEl = document.getElementById('sync-qr-status');
+  statusEl.textContent = 'Generating QR code…';
+  img.onload = () => { statusEl.textContent = 'Scan this on your other device to load this profile'; };
+  img.onerror = () => {
+    statusEl.textContent = "Couldn't load the QR code. Use your recovery code below to sync instead.";
+  };
+  img.src = `https://api.qrserver.com/v1/create-qr-code/?size=180x180&data=${encodeURIComponent(url)}`;
   wrap.classList.remove('hidden');
 });
 
@@ -796,6 +802,21 @@ function announceAdded(name, nextDueMs) {
   showToast(`✓ ${name} added — first review ${when}`, 5000);
 }
 
+
+// ── Arabic text size control ───────────────────────────────────────────────
+function applyArabicSize(size) {
+  document.documentElement.style.setProperty('--arabic-size', size + 'rem');
+  document.querySelectorAll('.ar-size-btn').forEach(b =>
+    b.classList.toggle('ar-size-btn--active', b.dataset.size === size));
+}
+document.querySelectorAll('.ar-size-btn').forEach(btn => {
+  btn.addEventListener('click', () => {
+    localStorage.setItem('rf_arabic_size', btn.dataset.size);
+    applyArabicSize(btn.dataset.size);
+  });
+});
+applyArabicSize(localStorage.getItem('rf_arabic_size') || '1.55');
+
 // ── Daily goal ─────────────────────────────────────────────────────────────
 function getDailyGoal() {
   return parseInt(localStorage.getItem('rf_daily_goal') ?? '10', 10);
@@ -1213,17 +1234,44 @@ function startReview(item) {
 }
 
 function computeInterval(card, quality) {
-  const qMap = { forgot: 0, hard: 2, good: 4, easy: 5 };
-  const q = qMap[quality];
-  if (q < 3) return 1;
-  if (card.repetitions === 0) return 1;
-  if (card.repetitions === 1) return 6;
-  return Math.round(card.interval * card.ease_factor);
+  // Mirrors backend FSRS-4.5 (fsrs.ts) so the per-button previews match
+  // exactly what the server will schedule. Kept deliberately in sync.
+  const W = [0.4872,1.4003,3.7145,13.8206,5.1618,1.2298,0.8975,0.031,1.6474,
+             0.1367,1.0461,2.1072,0.0793,0.3246,1.587,0.2272,2.8755];
+  const DECAY = -0.5, FACTOR = 19/81, R_TARGET = 0.9, MAXI = 3650;
+  const GRADE = { forgot:1, hard:2, good:3, easy:4 };
+  const clamp = (x,lo,hi) => Math.min(hi, Math.max(lo, x));
+  const g = GRADE[quality];
+
+  const nextIvl = S => clamp(Math.round((S/FACTOR)*(Math.pow(R_TARGET,1/DECAY)-1)), 1, MAXI);
+  const initS = gg => Math.max(W[gg-1], 0.1);
+  const initD = gg => clamp(W[4]-Math.exp(W[5]*(gg-1))+1, 1, 10);
+
+  // New item — first review
+  if (!card.repetitions || card.repetitions === 0) {
+    return g === 1 ? 1 : nextIvl(initS(g));
+  }
+  // Existing item — migrate legacy SM-2 ease (1.3–5.0) to FSRS difficulty if needed
+  let S = Math.max(card.interval, 1);
+  let D = card.ease_factor;
+  if (D >= 1.29 && D <= 5.01) D = clamp(11 - 1.8 * D, 1, 10);
+  const R = Math.pow(1 + FACTOR * (S / Math.max(S, 0.01)), DECAY);
+  if (g === 1) {
+    const sf = W[11]*Math.pow(D,-W[12])*(Math.pow(S+1,W[13])-1)*Math.exp(W[14]*(1-R));
+    return 1; // forgot always re-tests next day
+  }
+  const hard = g === 2 ? W[15] : 1;
+  const easy = g === 4 ? W[16] : 1;
+  const grow = Math.exp(W[8])*(11-D)*Math.pow(S,-W[9])*(Math.exp(W[10]*(1-R))-1)*hard*easy;
+  return nextIvl(S * (1 + grow));
 }
 
 function updateIntervalHints(card) {
   const intervals = previewIntervals(card);
-  const fmt = d => d === 1 ? '1 day' : d < 30 ? `${d} days` : `${Math.round(d/30)}mo`;
+  const fmt = d => d < 7 ? `${d}d`
+                 : d < 60 ? `${Math.round(d/7)}w`
+                 : d < 365 ? `${Math.round(d/30)}mo`
+                 : `${(d/365).toFixed(1)}y`;
   document.getElementById('qi-forgot').textContent = fmt(intervals.forgot);
   document.getElementById('qi-hard').textContent   = fmt(intervals.hard);
   document.getElementById('qi-good').textContent   = fmt(intervals.good);
@@ -1263,6 +1311,7 @@ async function submitReview(quality) {
   else startReview(state.dueItems[0]);
 }
 
+document.getElementById('stats-back-btn').addEventListener('click', loadDashboard);
 document.getElementById('review-back-btn').addEventListener('click', () => {
   stopAudio();
   clearSession();
@@ -1519,41 +1568,6 @@ async function loadStats() {
   });
   qEl.appendChild(barWrap);
   qEl.appendChild(legend);
-
-  // Recent log
-  const logEl = document.getElementById('stats-log');
-  logEl.innerHTML = '';
-  if (!log || log.length === 0) {
-    logEl.innerHTML = '<p style="color:var(--sub);font-size:.85rem;text-align:center;padding:1rem 0">No reviews yet.</p>';
-    return;
-  }
-  log.slice(0, 40).forEach(entry => {
-    // Use DOM methods throughout — no innerHTML with server-sourced data (XSS prevention)
-    const row = document.createElement('div');
-    row.className = 'log-row';
-
-    const itemSpan = document.createElement('span');
-    itemSpan.className = 'log-item';
-    itemSpan.textContent = prettyItemId(entry.item_id);
-
-    const right = document.createElement('div');
-    right.className = 'log-right';
-
-    const qualitySpan = document.createElement('span');
-    // Quality is server-validated to one of: forgot/hard/good/easy — safe as a class name
-    qualitySpan.className = `log-quality ${VALID_LOG_QUALITIES.has(entry.quality) ? entry.quality : ''}`;
-    qualitySpan.textContent = VALID_LOG_QUALITIES.has(entry.quality) ? entry.quality : '?';
-
-    const dateSpan = document.createElement('span');
-    dateSpan.className = 'log-date';
-    dateSpan.textContent = relativeDay(entry.reviewed_at);
-
-    right.appendChild(qualitySpan);
-    right.appendChild(dateSpan);
-    row.appendChild(itemSpan);
-    row.appendChild(right);
-    logEl.appendChild(row);
-  });
 }
 
 
