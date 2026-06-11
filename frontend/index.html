@@ -243,9 +243,11 @@
           <div class="logo-row">
             <h1 class="logo-small">muraja'ah</h1>
             <span id="streak-chip" class="streak-chip hidden"></span>
+            <span id="retention-chip" class="streak-chip hidden" title="Retention score — falls when reviews go overdue, recovers when you catch up"></span>
           </div>
           <p class="logo-tagline">Your personal Quran revision schedule</p>
         </div>
+        <button id="menu-btn" class="btn-icon" aria-label="Menu and settings">☰</button>
       </header>
 
       <!-- Welcome back banner — shown after an absence -->
@@ -299,6 +301,15 @@
       <!-- 7-day upcoming strip -->
       <div id="upcoming-strip" class="upcoming-strip hidden"></div>
 
+      <!-- Full queue — merged from the old Queue view, collapsed by default -->
+      <div class="queue-embed">
+        <button id="queue-toggle-btn" class="queue-toggle-btn" aria-expanded="false">My full queue ▾</button>
+        <div id="queue-wrap" class="hidden">
+          <input id="queue-search" type="search" placeholder="Filter by surah…" class="queue-search-input" autocomplete="off" />
+          <div id="queue-content" class="queue-content"></div>
+        </div>
+      </div>
+
       <div id="resume-banner" class="resume-banner hidden">
         <span id="resume-label">Resume session</span>
         <div class="resume-actions">
@@ -317,9 +328,11 @@
     <div id="profile-overlay" class="profile-overlay hidden" role="dialog" aria-label="Profile picker">
       <div class="profile-panel">
         <div class="profile-panel-hd">
-          <span class="profile-panel-title">Profiles</span>
+          <span class="profile-panel-title">Menu</span>
           <button id="profile-close-btn" class="btn-icon-sm" aria-label="Close">✕</button>
         </div>
+        <button id="menu-stats-btn" class="menu-link" type="button">📊 Your progress</button>
+        <p class="profile-notif-label" style="margin-top:1rem">Profiles</p>
         <div id="profile-list" class="profile-list"></div>
         <button id="profile-add-btn" class="profile-add-btn">＋ New profile</button>
         <div id="profile-new-form" class="profile-new-form hidden">
@@ -504,7 +517,7 @@
       <div class="complete-wrap">
         <div class="complete-icon">✓</div>
         <h2 class="complete-title">All done for today!</h2>
-        <p class="complete-sub">Come back tomorrow to keep your streak going.</p>
+        <p class="complete-sub" id="complete-sub">Come back tomorrow to keep your streak going.</p>
         <div class="complete-stats">
           <div class="stat-box">
             <span id="complete-count" class="stat-num">0</span>
@@ -518,14 +531,6 @@
         <button id="complete-add-btn" class="btn-primary">Add more ayahs</button>
         <button id="complete-home-btn" class="btn-back complete-home">Back to dashboard</button>
       </div>
-    </div>
-
-    <!-- Queue View — all tracked ranges grouped by when due -->
-    <div id="view-queue" class="view">
-      <h2>My Queue</h2>
-      <p class="add-subhead">All your tracked ayah ranges, grouped by when they need review.</p>
-      <input id="queue-search" type="search" placeholder="Filter by surah…" class="queue-search-input" autocomplete="off" />
-      <div id="queue-content" class="queue-content"></div>
     </div>
 
     <!-- Stats View -->
@@ -552,20 +557,8 @@
       <span class="nav-icon">🏠</span>
       <span class="nav-label">Home</span>
     </button>
-    <button class="nav-tab" data-action="queue" aria-label="My Queue">
-      <span class="nav-icon">☰</span>
-      <span class="nav-label">Queue</span>
-    </button>
     <button class="nav-tab nav-tab--add" data-action="add" aria-label="Add ayah range">
       <span class="nav-icon">+</span>
-    </button>
-    <button class="nav-tab" data-action="stats" aria-label="Progress">
-      <span class="nav-icon">📊</span>
-      <span class="nav-label">Stats</span>
-    </button>
-    <button class="nav-tab" data-action="profile" aria-label="Profile">
-      <span class="nav-icon">👤</span>
-      <span class="nav-label">Profile</span>
     </button>
   </nav>
   <!-- Playback bottom sheet — fixed, visible during review -->

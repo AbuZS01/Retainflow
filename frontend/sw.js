@@ -1,4 +1,4 @@
-const CACHE = 'retainflow-v45';
+const CACHE = 'retainflow-v48';
 const AUDIO_CACHE = 'retainflow-audio-v1';
 const AUDIO_MAX = 200; // cap cached ayah recitations (~LRU)
 const SHELL = ['/', '/index.html', '/style.css', '/app.js', '/manifest.json'];

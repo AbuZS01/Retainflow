@@ -212,6 +212,11 @@ function closeProfileOverlay() {
 }
 
 document.getElementById('profile-close-btn').addEventListener('click', closeProfileOverlay);
+document.getElementById('menu-btn').addEventListener('click', openProfileOverlay);
+document.getElementById('menu-stats-btn').addEventListener('click', () => {
+  closeProfileOverlay();
+  loadStats();
+});
 document.getElementById('profile-overlay').addEventListener('click', (e) => {
   if (e.target === e.currentTarget) closeProfileOverlay();
 });
@@ -418,10 +423,7 @@ document.querySelectorAll('.nav-tab').forEach((tab) => {
     const action = tab.dataset.action;
     switch (action) {
       case 'home':    setActiveTab('home');    loadDashboard();       break;
-      case 'queue':   setActiveTab('queue');   loadQueue();           break;
       case 'add':     setActiveTab('add');     openAddView();         break;
-      case 'stats':   setActiveTab('stats');   loadStats();           break;
-      case 'profile': openProfileOverlay();                           break;
     }
   });
 });
@@ -546,6 +548,21 @@ function renderDueList() {
 
     const rightGroup = document.createElement('div');
     rightGroup.style.cssText = 'display:flex;align-items:center;gap:.5rem';
+
+    // Loss-aversion framing: name the decay, not just the lateness.
+    const overdueDays = Math.floor((Date.now() - item.next_due_date) / 86_400_000);
+    const meta = document.createElement('span');
+    meta.className = 'item-meta';
+    if (overdueDays >= 2) {
+      meta.textContent = `${overdueDays} days overdue — fading`;
+      meta.classList.add('item-meta--risk');
+    } else if (overdueDays >= 1) {
+      meta.textContent = '1 day overdue';
+      meta.classList.add('item-meta--risk');
+    } else {
+      meta.textContent = 'Due now';
+    }
+    rightGroup.appendChild(meta);
     rightGroup.appendChild(deleteBtn);
 
     row.appendChild(idSpan);
@@ -754,6 +771,7 @@ document.getElementById('save-item-btn').addEventListener('click', async () => {
   if (status === 201) {
     localStorage.setItem('rf_has_items', 'true');
     await loadDashboard();
+    announceAdded(prettyItemId(itemId), initial.next_due_date);
   } else if (status === 403) {
     const errEl = document.getElementById('add-error');
     errEl.textContent = data.message;
@@ -767,6 +785,16 @@ document.getElementById('save-item-btn').addEventListener('click', async () => {
     document.getElementById('add-error').classList.remove('hidden');
   }
 });
+
+
+// Tells the user exactly where their new item went and when it returns.
+function announceAdded(name, nextDueMs) {
+  const days = Math.ceil((nextDueMs - Date.now()) / 86_400_000);
+  const when = days <= 0 ? 'today — it\'s in your due list below'
+             : days === 1 ? 'tomorrow'
+             : `in ${days} days`;
+  showToast(`✓ ${name} added — first review ${when}`, 5000);
+}
 
 // ── Daily goal ─────────────────────────────────────────────────────────────
 function getDailyGoal() {
@@ -1221,8 +1249,11 @@ async function submitReview(quality) {
   stopAudio();
   haptic(25);
   incrementTodayCount();
-  await apiFetch('PUT', `/api/items/${state.reviewItem.item_id}/review`, { quality, user_id: state.userId });
+  const { data: reviewData } = await apiFetch('PUT', `/api/items/${state.reviewItem.item_id}/review`, { quality, user_id: state.userId });
   state.sessionDone++;
+  // The reward moment: show what this review just earned before advancing.
+  showIntervalPop(quality, prevState.interval, reviewData?.interval);
+  await new Promise(r => setTimeout(r, 850));
   state.dueItems = state.dueItems.filter((i) => i.item_id !== state.reviewItem.item_id);
   if (state.dueItems.length > 0) saveSession(); else clearSession();
   state.reviewItem = null;
@@ -1261,6 +1292,41 @@ document.querySelectorAll('.snooze-option').forEach(btn => {
     else startReview(state.dueItems[0]);
   });
 });
+
+// ── Interval-growth pop (the grading reward) ───────────────────────────────
+function formatIvl(days) {
+  if (!Number.isFinite(days)) return '';
+  if (days < 14)  return `${days}d`;
+  if (days < 60)  return `${Math.round(days / 7)}w`;
+  if (days < 365) return `${Math.round(days / 30)}mo`;
+  return `${(days / 365).toFixed(1)}y`;
+}
+
+function showIntervalPop(quality, oldIvl, newIvl) {
+  let pop = document.getElementById('interval-pop');
+  if (!pop) {
+    pop = document.createElement('div');
+    pop.id = 'interval-pop';
+    pop.setAttribute('role', 'status');
+    document.body.appendChild(pop);
+  }
+  if (quality === 'forgot') {
+    pop.textContent = 'Back to daily — we\'ll rebuild it together';
+    pop.className = 'interval-pop pop-reset';
+  } else if (Number.isFinite(newIvl) && newIvl > (oldIvl ?? 0)) {
+    pop.textContent = `↑ ${formatIvl(oldIvl)} → ${formatIvl(newIvl)} — locked in`;
+    pop.className = 'interval-pop pop-grow';
+  } else if (Number.isFinite(newIvl)) {
+    pop.textContent = `Next review in ${formatIvl(newIvl)}`;
+    pop.className = 'interval-pop pop-grow';
+  } else {
+    return; // offline / error — skip the pop, never block the loop
+  }
+  void pop.offsetWidth; // restart animation
+  pop.classList.add('pop-show');
+  clearTimeout(pop._t);
+  pop._t = setTimeout(() => pop.classList.remove('pop-show'), 800);
+}
 
 document.querySelectorAll('.q-btn').forEach((btn) => {
   btn.addEventListener('click', () => submitReview(btn.dataset.quality));
@@ -1501,7 +1567,38 @@ function showSessionComplete() {
   if (toast) { clearTimeout(toast._timer); toast.classList.remove('toast-show'); }
   document.getElementById('complete-count').textContent  = state.sessionDone;
   document.getElementById('complete-streak').textContent = streak;
+  document.getElementById('complete-sub').textContent = 'Come back tomorrow to keep your streak going.';
   showView('view-complete');
+  renderTomorrowHook(); // fire-and-forget — fills in the unfinished-state line
+}
+
+// Retention hook: surface tomorrow's due items so the session never feels "finished".
+async function renderTomorrowHook() {
+  const el = document.getElementById('complete-sub');
+  const { status, data } = await apiFetch('GET', `/api/items/${state.userId}/all`);
+  if (status !== 200 || !Array.isArray(data) || data.length === 0) return;
+
+  const now = Date.now();
+  const endOfTomorrow = new Date();
+  endOfTomorrow.setHours(23, 59, 59, 999);
+  const tomorrowCutoff = endOfTomorrow.getTime() + 86_400_000;
+
+  const upcoming = data
+    .filter(i => i.next_due_date > now)
+    .sort((x, y) => x.next_due_date - y.next_due_date);
+  if (upcoming.length === 0) return;
+
+  const dueTomorrow = upcoming.filter(i => i.next_due_date <= tomorrowCutoff);
+  if (dueTomorrow.length > 0) {
+    const names = dueTomorrow.map(i => prettyItemId(i.item_id));
+    if (names.length === 1)      el.textContent = `${names[0]} comes due tomorrow — your schedule continues.`;
+    else if (names.length === 2) el.textContent = `${names[0]} and ${names[1]} come due tomorrow.`;
+    else                         el.textContent = `${names[0]}, ${names[1]} and ${names.length - 2} more come due tomorrow.`;
+  } else {
+    const next = upcoming[0];
+    const days = Math.max(1, Math.ceil((next.next_due_date - now) / 86_400_000));
+    el.textContent = `Next up: ${prettyItemId(next.item_id)} in ${days} day${days === 1 ? '' : 's'}. Nothing slips on this schedule.`;
+  }
 }
 
 document.getElementById('complete-add-btn').addEventListener('click', openAddView);
@@ -1767,8 +1864,8 @@ async function addJuzItems(juzNum, chunkSize) {
   }
 
   if (added > 0) localStorage.setItem('rf_has_items', 'true');
-  statusEl.textContent = `✓ ${added} item${added !== 1 ? 's' : ''} added to your queue`;
   await loadDashboard();
+  showToast(`✓ ${added} item${added !== 1 ? 's' : ''} added — first reviews start today`, 5000);
 }
 
 async function addSingleJuzItem(juzNum) {
@@ -1787,8 +1884,8 @@ async function addSingleJuzItem(juzNum) {
   const statusEl = document.getElementById('juz-add-status');
   if (status === 201) {
     localStorage.setItem('rf_has_items', 'true');
-    if (statusEl) statusEl.textContent = `Juz ${juzNum} added to your queue.`;
     await loadDashboard();
+    announceAdded(`Juz ${juzNum}`, DIFFICULTY_INITIAL[selectedDifficulty].next_due_date());
   } else if (status === 409) {
     if (statusEl) statusEl.textContent = `Juz ${juzNum} is already in your queue.`;
   } else if (status === 403) {
@@ -1907,12 +2004,31 @@ document.querySelectorAll('.diff-pill').forEach(btn => {
   });
 });
 
+// ── Retention score ─────────────────────────────────────────────────────────
+// 100 when every item is reviewed on schedule. Each item loses up to a full
+// share as it goes overdue (capped at 7 days). Falls daily when you skip,
+// recovers when you catch up — a thing to MAINTAIN, not a streak to lose once.
+function updateRetentionChip(items) {
+  const chip = document.getElementById('retention-chip');
+  if (!chip) return;
+  if (!items || items.length === 0) { chip.classList.add('hidden'); return; }
+  const now = Date.now();
+  const penalty = items.reduce((sum, i) => {
+    const overdueDays = Math.max(0, (now - i.next_due_date) / 86_400_000);
+    return sum + Math.min(overdueDays, 7) / 7;
+  }, 0);
+  const score = Math.round(100 * (1 - penalty / items.length));
+  chip.textContent = `🛡 ${score}`;
+  chip.classList.remove('hidden');
+}
+
 // ── Upcoming 7-day strip ───────────────────────────────────────────────────
 async function renderUpcomingStrip() {
   const strip = document.getElementById('upcoming-strip');
   if (!strip) return;
 
   const { status, data } = await apiFetch('GET', `/api/items/${state.userId}/all`);
+  updateRetentionChip(status === 200 && Array.isArray(data) ? data : []);
   if (status !== 200 || !Array.isArray(data) || data.length === 0) {
     strip.classList.add('hidden');
     return;
@@ -1946,9 +2062,12 @@ async function renderUpcomingStrip() {
 // ── My Queue view ──────────────────────────────────────────────────────────
 let queueAllItems = [];
 
-async function loadQueue() {
-  setActiveTab('queue');
-  showView('view-queue');
+async function loadQueue(open = true) {
+  const wrap = document.getElementById('queue-wrap');
+  if (open) {
+    wrap.classList.remove('hidden');
+    updateQueueToggleLabel();
+  }
   document.getElementById('queue-search').value = '';
   const { status, data } = await apiFetch('GET', `/api/items/${state.userId}/all`);
   if (status !== 200 || !Array.isArray(data)) return;
@@ -2070,7 +2189,8 @@ document.getElementById('edit-range-save-btn').addEventListener('click', async (
   });
   if (status === 200) {
     document.getElementById('edit-range-modal').classList.add('hidden');
-    await loadQueue();
+    await loadDashboard();
+    if (!document.getElementById('queue-wrap').classList.contains('hidden')) await loadQueue(false);
   } else {
     document.getElementById('edit-range-error').textContent = data?.message ?? data?.error ?? 'Error saving.';
     document.getElementById('edit-range-error').classList.remove('hidden');
@@ -2317,6 +2437,21 @@ function startFromLanding() {
 
 document.getElementById('landing-cta-btn').addEventListener('click', startFromLanding);
 document.getElementById('landing-cta-btn-2').addEventListener('click', startFromLanding);
+
+function updateQueueToggleLabel() {
+  const btn = document.getElementById('queue-toggle-btn');
+  const open = !document.getElementById('queue-wrap').classList.contains('hidden');
+  btn.textContent = open ? 'My full queue ▴' : 'My full queue ▾';
+  btn.setAttribute('aria-expanded', String(open));
+}
+
+document.getElementById('queue-toggle-btn').addEventListener('click', async () => {
+  const wrap = document.getElementById('queue-wrap');
+  const opening = wrap.classList.contains('hidden');
+  wrap.classList.toggle('hidden');
+  updateQueueToggleLabel();
+  if (opening) await loadQueue(false);
+});
 
 document.getElementById('queue-search').addEventListener('input', (e) => {
   const q = e.target.value.trim().toLowerCase();
