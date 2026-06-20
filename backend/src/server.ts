@@ -6,7 +6,7 @@ import fastifyCompress from '@fastify/compress';
 import rateLimit from '@fastify/rate-limit';
 import { fileURLToPath } from 'url';
 import path from 'path';
-import { initDb, createUser, addItem, getDueItems, getAllItems, getItem, updateItem, deleteItem, renameItem, searchAyahs, getAyahRange, logReview, getReviewLog, getStats, updateNotes, snoozeItem, undoReview } from './database.js';
+import { initDb, createUser, addItem, getDueItems, getAllItems, getItem, updateItem, deleteItem, renameItem, searchAyahs, getAyahRange, logReview, getReviewLog, getStats, updateNotes, snoozeItem, rescheduleItem, undoReview } from './database.js';
 import { applyReview as applySm2, type ReviewQuality } from './engine.js';
 import { applyReview as applyFsrs } from './fsrs.js';
 import { registerBillingRoutes } from './payments.js';
@@ -19,7 +19,7 @@ const VALID_QUALITIES = new Set<string>(['forgot', 'hard', 'good', 'easy']);
 // Allowed origins: same-origin in production, localhost in dev.
 const ALLOWED_ORIGINS = process.env.ALLOWED_ORIGINS
   ? process.env.ALLOWED_ORIGINS.split(',').map(o => o.trim())
-  : ['http://localhost:3000', 'http://127.0.0.1:3000'];
+  : ['http://localhost:3000', 'http://127.0.0.1:3000', 'http://localhost:8081', 'http://localhost:19006'];
 
 import type { FastifyReply } from 'fastify';
 
@@ -229,6 +229,27 @@ export function buildApp(dbPath: string): FastifyInstance {
     return reply.send({ ok: true });
   });
 
+  // PUT /api/items/:itemId/reschedule
+  app.put('/api/items/:itemId/reschedule', async (req, reply) => {
+    const { itemId } = req.params as { itemId: string };
+    const { user_id, date } = req.body as { user_id?: string; date?: number };
+    if (!requireUserId(user_id, reply)) return;
+    if (typeof date !== 'number' || !Number.isFinite(date) || date < 0)
+      return reply.status(400).send({ error: 'date must be a valid timestamp (ms)' });
+    // Cap at 2 years out — sanity guard
+    const twoYears = Date.now() + 730 * 86_400_000;
+    if (date > twoYears)
+      return reply.status(400).send({ error: 'date too far in the future (max 2 years)' });
+    try {
+      rescheduleItem(db, user_id, itemId, date);
+      return reply.send({ ok: true });
+    } catch (err: any) {
+      if (err.message.startsWith('ITEM_NOT_FOUND'))
+        return reply.status(404).send({ error: 'ITEM_NOT_FOUND' });
+      throw err;
+    }
+  });
+
   // PUT /api/items/:itemId/undo-review
   app.put('/api/items/:itemId/undo-review', async (req, reply) => {
     const { itemId } = req.params as { itemId: string };
@@ -277,7 +298,7 @@ export function buildApp(dbPath: string): FastifyInstance {
     if (isNaN(s) || isNaN(f) || isNaN(t) || s < 1 || s > 114 || f < 1 || t < f || t - f > 300)
       return reply.status(400).send({ error: 'invalid range' });
     const ayahs = getAyahRange(db, s, f, t);
-    return reply.send(ayahs);
+    return reply.send(ayahs.map(a => ({ ...a, indopak: a.arabic })));
   });
 
   // GET /api/export/:userId — full data export ("your data is yours")

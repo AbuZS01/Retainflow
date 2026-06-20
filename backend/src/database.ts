@@ -276,6 +276,12 @@ export function snoozeItem(db: Db, userId: string, itemId: string, days = 1): vo
   if (changes === 0) throw new Error(`ITEM_NOT_FOUND: ${itemId}`);
 }
 
+// ── Reschedule (arbitrary date) ─────────────────────────────────────────────
+export function rescheduleItem(db: Db, userId: string, itemId: string, date: number): void {
+  const { changes } = db.prepare('UPDATE items SET next_due_date = ? WHERE user_id = ? AND item_id = ?').run(date, userId, itemId);
+  if (changes === 0) throw new Error(`ITEM_NOT_FOUND: ${itemId}`);
+}
+
 // ── All items (for stats) ───────────────────────────────────────────────────
 export function getAllItems(db: Db, userId: string): ItemRow[] {
   return db.prepare(
