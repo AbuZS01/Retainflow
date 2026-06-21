@@ -17,9 +17,16 @@ const applyReview = (process.env.ENGINE ?? 'fsrs') === 'sm2' ? applySm2 : applyF
 const VALID_QUALITIES = new Set<string>(['forgot', 'hard', 'good', 'easy']);
 
 // Allowed origins: same-origin in production, localhost in dev.
-const ALLOWED_ORIGINS = process.env.ALLOWED_ORIGINS
-  ? process.env.ALLOWED_ORIGINS.split(',').map(o => o.trim())
-  : ['http://localhost:3000', 'http://127.0.0.1:3000', 'http://localhost:8081', 'http://localhost:19006'];
+// Production frontends are always allowed (the muraja'ah PWA is hosted on
+// Vercel); ALLOWED_ORIGINS env var, when set, adds to — not replaces — these.
+const PRODUCTION_ORIGINS = ['https://muraja-native.vercel.app'];
+const DEV_ORIGINS = ['http://localhost:3000', 'http://127.0.0.1:3000', 'http://localhost:8081', 'http://localhost:19006'];
+const ALLOWED_ORIGINS = [
+  ...PRODUCTION_ORIGINS,
+  ...(process.env.ALLOWED_ORIGINS
+    ? process.env.ALLOWED_ORIGINS.split(',').map(o => o.trim())
+    : DEV_ORIGINS),
+];
 
 import type { FastifyReply } from 'fastify';
 
