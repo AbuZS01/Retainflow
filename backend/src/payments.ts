@@ -64,13 +64,20 @@ export function registerBillingRoutes(app: FastifyInstance, db: any) {
   const SET_TIER = db.prepare('UPDATE users SET is_premium = 1 WHERE user_id = ?');
   const GET_TIER = db.prepare('SELECT is_premium FROM users WHERE user_id = ?');
 
-  // GET /api/me/:userId — current tier (frontend uses this to hide Upgrade)
-  app.get('/api/me/:userId', async (req, reply) => {
-    const { userId } = req.params as { userId: string };
+  // Current tier (frontend uses this to hide Upgrade).
+  // Header-auth variant (no id in URL) + legacy path variant.
+  const tierHandler = async (req: any, reply: any) => {
+    const auth = req.headers['authorization'];
+    const userId = (typeof auth === 'string' && auth.startsWith('Bearer '))
+      ? auth.slice(7).trim()
+      : (req.params?.userId as string | undefined);
+    if (!userId) return reply.status(400).send({ error: 'user_id required' });
     const row = GET_TIER.get(userId) as { is_premium?: number } | undefined;
     const tier = row?.is_premium === 1 ? 'premium' : 'free';
     return reply.send({ tier, billing: stripeConfigured() });
-  });
+  };
+  app.get('/api/me/tier', tierHandler);
+  app.get('/api/me/:userId', tierHandler);
 
   // POST /api/billing/checkout — create a Stripe Checkout session
   app.post('/api/billing/checkout', {

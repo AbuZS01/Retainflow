@@ -28,7 +28,27 @@ const ALLOWED_ORIGINS = [
     : DEV_ORIGINS),
 ];
 
-import type { FastifyReply } from 'fastify';
+import type { FastifyReply, FastifyRequest } from 'fastify';
+
+/**
+ * Resolve the caller's user_id. Preferred source is the `Authorization: Bearer`
+ * header (keeps the credential out of URLs/logs); falls back to the route param,
+ * body, or query for older clients (the web frontend still uses those).
+ */
+function userIdFrom(req: FastifyRequest): string | undefined {
+  const auth = req.headers['authorization'];
+  if (typeof auth === 'string' && auth.startsWith('Bearer ')) {
+    const id = auth.slice(7).trim();
+    if (id) return id;
+  }
+  const p = (req.params as { userId?: string } | undefined)?.userId;
+  if (p) return p;
+  const b = (req.body as { user_id?: string } | undefined)?.user_id;
+  if (b) return b;
+  const q = (req.query as { user_id?: string } | undefined)?.user_id;
+  if (q) return q;
+  return undefined;
+}
 
 /** Returns false and sends 400 when user_id is missing — use as an early-return guard. */
 function requireUserId(user_id: string | undefined, reply: FastifyReply): user_id is string {
@@ -128,24 +148,29 @@ export function buildApp(dbPath: string): FastifyInstance {
     }
   });
 
-  // GET /api/items/:userId
-  app.get('/api/items/:userId', async (req, reply) => {
-    const { userId } = req.params as { userId: string };
-    const items = getDueItems(db, userId);
-    return reply.send(items);
-  });
+  // Due items — header-auth (preferred) and legacy path variant.
+  const dueHandler = async (req: FastifyRequest, reply: FastifyReply) => {
+    const userId = userIdFrom(req);
+    if (!requireUserId(userId, reply)) return;
+    return reply.send(getDueItems(db, userId));
+  };
+  app.get('/api/me/due', dueHandler);
+  app.get('/api/items/:userId', dueHandler);
 
-  // GET /api/items/:userId/all
-  app.get('/api/items/:userId/all', async (req, reply) => {
-    const { userId } = req.params as { userId: string };
-    const items = getAllItems(db, userId);
-    return reply.send(items);
-  });
+  // All items — header-auth (preferred) and legacy path variant.
+  const allHandler = async (req: FastifyRequest, reply: FastifyReply) => {
+    const userId = userIdFrom(req);
+    if (!requireUserId(userId, reply)) return;
+    return reply.send(getAllItems(db, userId));
+  };
+  app.get('/api/me/all', allHandler);
+  app.get('/api/items/:userId/all', allHandler);
 
   // PUT /api/items/:itemId/review
   app.put('/api/items/:itemId/review', async (req, reply) => {
     const { itemId } = req.params as { itemId: string };
-    const { quality, user_id } = req.body as { quality?: string; user_id?: string };
+    const { quality } = req.body as { quality?: string };
+    const user_id = userIdFrom(req);
     if (!quality || !VALID_QUALITIES.has(quality))
       return reply.status(400).send({ error: 'quality must be one of: forgot, hard, good, easy' });
     if (!requireUserId(user_id, reply)) return;
@@ -165,9 +190,8 @@ export function buildApp(dbPath: string): FastifyInstance {
   // DELETE /api/items/:itemId
   app.delete('/api/items/:itemId', async (req, reply) => {
     const { itemId } = req.params as { itemId: string };
-    // Prefer query param — some proxies/CDNs strip DELETE request bodies.
-    const q = req.query as { user_id?: string };
-    const user_id = q.user_id ?? ((req.body ?? {}) as { user_id?: string }).user_id;
+    // Prefer the Authorization header — reliable even when proxies strip DELETE bodies.
+    const user_id = userIdFrom(req);
     if (!requireUserId(user_id, reply)) return;
     try {
       deleteItem(db, user_id, itemId);
@@ -182,9 +206,10 @@ export function buildApp(dbPath: string): FastifyInstance {
   // PUT /api/items/:itemId/range
   app.put('/api/items/:itemId/range', async (req, reply) => {
     const { itemId } = req.params as { itemId: string };
-    const { user_id, surah, from, to } = req.body as {
-      user_id?: string; surah?: number; from?: number; to?: number;
+    const { surah, from, to } = req.body as {
+      surah?: number; from?: number; to?: number;
     };
+    const user_id = userIdFrom(req);
     if (!requireUserId(user_id, reply)) return;
     if (
       typeof surah !== 'number' || typeof from !== 'number' || typeof to !== 'number' ||
@@ -206,18 +231,22 @@ export function buildApp(dbPath: string): FastifyInstance {
     }
   });
 
-  // GET /api/stats/:userId
-  app.get('/api/stats/:userId', async (req, reply) => {
-    const { userId } = req.params as { userId: string };
+  // Stats — header-auth (preferred) and legacy path variant.
+  const statsHandler = async (req: FastifyRequest, reply: FastifyReply) => {
+    const userId = userIdFrom(req);
+    if (!requireUserId(userId, reply)) return;
     const counts = getStats(db, userId);
     const log    = getReviewLog(db, userId, 100);
     return reply.send({ ...counts, log });
-  });
+  };
+  app.get('/api/me/stats', statsHandler);
+  app.get('/api/stats/:userId', statsHandler);
 
   // PUT /api/items/:itemId/notes
   app.put('/api/items/:itemId/notes', async (req, reply) => {
     const { itemId } = req.params as { itemId: string };
-    const { notes = '', user_id } = req.body as { notes?: string; user_id?: string };
+    const { notes = '' } = req.body as { notes?: string };
+    const user_id = userIdFrom(req);
     if (!requireUserId(user_id, reply)) return;
     if (typeof notes === 'string' && notes.length > 10_000)
       return reply.status(400).send({ error: 'notes too long (max 10,000 chars)' });
@@ -228,7 +257,8 @@ export function buildApp(dbPath: string): FastifyInstance {
   // PUT /api/items/:itemId/snooze
   app.put('/api/items/:itemId/snooze', async (req, reply) => {
     const { itemId } = req.params as { itemId: string };
-    const { user_id, days = 1 } = req.body as { user_id?: string; days?: number };
+    const { days = 1 } = req.body as { days?: number };
+    const user_id = userIdFrom(req);
     if (!requireUserId(user_id, reply)) return;
     if (![1, 3, 7, 14].includes(days))
       return reply.status(400).send({ error: 'days must be 1, 3, 7, or 14' });
@@ -239,7 +269,8 @@ export function buildApp(dbPath: string): FastifyInstance {
   // PUT /api/items/:itemId/reschedule
   app.put('/api/items/:itemId/reschedule', async (req, reply) => {
     const { itemId } = req.params as { itemId: string };
-    const { user_id, date } = req.body as { user_id?: string; date?: number };
+    const { date } = req.body as { date?: number };
+    const user_id = userIdFrom(req);
     if (!requireUserId(user_id, reply)) return;
     if (typeof date !== 'number' || !Number.isFinite(date) || date < 0)
       return reply.status(400).send({ error: 'date must be a valid timestamp (ms)' });
@@ -260,10 +291,10 @@ export function buildApp(dbPath: string): FastifyInstance {
   // PUT /api/items/:itemId/undo-review
   app.put('/api/items/:itemId/undo-review', async (req, reply) => {
     const { itemId } = req.params as { itemId: string };
-    const { user_id, prev_state } = req.body as {
-      user_id?: string;
+    const { prev_state } = req.body as {
       prev_state?: { interval: number; ease_factor: number; repetitions: number; next_due_date: number };
     };
+    const user_id = userIdFrom(req);
     if (!requireUserId(user_id, reply)) return;
     if (
       !prev_state ||
@@ -308,11 +339,10 @@ export function buildApp(dbPath: string): FastifyInstance {
     return reply.send(ayahs.map(a => ({ ...a, indopak: a.arabic })));
   });
 
-  // GET /api/export/:userId — full data export ("your data is yours")
-  app.get('/api/export/:userId', {
-    config: { rateLimit: { max: 5, timeWindow: '1 minute' } },
-  }, async (req, reply) => {
-    const { userId } = req.params as { userId: string };
+  // Full data export ("your data is yours") — header-auth + legacy path variant.
+  const exportHandler = async (req: FastifyRequest, reply: FastifyReply) => {
+    const userId = userIdFrom(req);
+    if (!requireUserId(userId, reply)) return;
     const items = getAllItems(db, userId);
     const log = getReviewLog(db, userId, 10_000);
     const stats = getStats(db, userId);
@@ -323,13 +353,17 @@ export function buildApp(dbPath: string): FastifyInstance {
       user_id: userId,
       stats, items, review_log: log,
     });
-  });
+  };
+  const exportOpts = { config: { rateLimit: { max: 5, timeWindow: '1 minute' } } };
+  app.get('/api/me/export', exportOpts, exportHandler);
+  app.get('/api/export/:userId', exportOpts, exportHandler);
 
   // Stripe billing (one-time lifetime purchase) — no-ops if env not set
   registerBillingRoutes(app, db);
 
   // Security + cache headers on every response
   app.addHook('onSend', async (req, reply) => {
+    reply.header('Strict-Transport-Security', 'max-age=63072000; includeSubDomains; preload');
     reply.header('X-Content-Type-Options', 'nosniff');
     reply.header('X-Frame-Options', 'DENY');
     reply.header('Referrer-Policy', 'strict-origin-when-cross-origin');
