@@ -90,6 +90,11 @@ export function buildApp(dbPath: string): FastifyInstance {
       if (ALLOWED_ORIGINS.includes(origin)) return cb(null, true);
       cb(new Error('Not allowed by CORS'), false);
     },
+    // @fastify/cors defaults to GET,HEAD,POST — the reschedule/undo/notes/snooze
+    // routes use PUT and the swipe-to-delete route uses DELETE, so both must be
+    // listed explicitly or their preflight requests get rejected.
+    methods: ['GET', 'HEAD', 'POST', 'PUT', 'DELETE'],
+    allowedHeaders: ['Content-Type', 'Authorization'],
   });
 
   // POST /api/users
