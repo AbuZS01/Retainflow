@@ -134,7 +134,9 @@ export function initDb(dbPath: string): Db {
         from_user_id  TEXT NOT NULL,
         to_user_id    TEXT NOT NULL,
         created_at    INTEGER NOT NULL,
-        FOREIGN KEY (circle_id) REFERENCES circles(id)
+        FOREIGN KEY (circle_id) REFERENCES circles(id),
+        FOREIGN KEY (from_user_id) REFERENCES users(user_id),
+        FOREIGN KEY (to_user_id) REFERENCES users(user_id)
       );
       CREATE INDEX IF NOT EXISTS idx_cheers_to ON circle_cheers(circle_id, to_user_id);
       CREATE INDEX IF NOT EXISTS idx_members_user ON circle_members(user_id);
