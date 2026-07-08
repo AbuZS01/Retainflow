@@ -401,6 +401,9 @@ export function buildApp(dbPath: string): FastifyInstance {
     const { id } = req.params as { id: string };
     const user_id = userIdFrom(req);
     if (!requireUserId(user_id, reply)) return;
+    const myCircles = getUserCircles(db, user_id);
+    if (!myCircles.some(c => c.id === id))
+      return reply.status(404).send({ error: 'CIRCLE_NOT_FOUND' });
     leaveCircle(db, user_id, id);
     return reply.send({ ok: true });
   });

@@ -407,6 +407,22 @@ describe('POST /api/circles/:id/leave', () => {
     });
     expect(JSON.parse(listRes.body)).toHaveLength(0);
   });
+
+  it('returns 404 for a non-member', async () => {
+    await app.inject({ method: 'POST', url: '/api/users', payload: { user_id: 'leave-owner-1' } });
+    await app.inject({ method: 'POST', url: '/api/users', payload: { user_id: 'leave-outsider-1' } });
+    const createRes = await app.inject({
+      method: 'POST', url: '/api/circles',
+      headers: { authorization: 'Bearer leave-owner-1' },
+      payload: { name: 'Not Yours' },
+    });
+    const { id } = JSON.parse(createRes.body);
+    const res = await app.inject({
+      method: 'POST', url: `/api/circles/${id}/leave`,
+      headers: { authorization: 'Bearer leave-outsider-1' },
+    });
+    expect(res.statusCode).toBe(404);
+  });
 });
 
 describe('POST /api/circles/:id/cheer/:userId', () => {
