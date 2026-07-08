@@ -1,6 +1,7 @@
 import Database from 'better-sqlite3';
 import type { Database as BetterSqlite3Database } from 'better-sqlite3';
 import { createRequire } from 'module';
+import { randomInt, randomUUID } from 'crypto';
 import fs from 'fs';
 import path from 'path';
 import type { ReviewResult } from './engine.js';
@@ -454,7 +455,7 @@ function generateInviteCode(db: Db): string {
   const chars = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789'; // no 0/O/1/I, avoids ambiguous codes
   for (let attempt = 0; attempt < 10; attempt++) {
     let code = '';
-    for (let i = 0; i < 8; i++) code += chars[Math.floor(Math.random() * chars.length)];
+    for (let i = 0; i < 8; i++) code += chars[randomInt(chars.length)];
     const existing = db.prepare('SELECT 1 FROM circles WHERE invite_code = ?').get(code);
     if (!existing) return code;
   }
@@ -471,7 +472,7 @@ export function createCircle(db: Db, userId: string, name: string, description: 
   ).n;
   if (count >= MAX_CIRCLES_PER_USER) throw new Error('CIRCLE_CAP_REACHED');
 
-  const id = `circle_${Date.now()}_${Math.floor(Math.random() * 1_000_000)}`;
+  const id = `circle_${randomUUID()}`;
   const invite_code = generateInviteCode(db);
   const created_at = Date.now();
 
