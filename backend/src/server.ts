@@ -6,7 +6,7 @@ import fastifyCompress from '@fastify/compress';
 import rateLimit from '@fastify/rate-limit';
 import { fileURLToPath } from 'url';
 import path from 'path';
-import { initDb, createUser, addItem, getDueItems, getAllItems, getItem, updateItem, deleteItem, renameItem, searchAyahs, getAyahRange, logReview, getReviewLog, getStats, updateNotes, snoozeItem, rescheduleItem, undoReview } from './database.js';
+import { initDb, createUser, addItem, getDueItems, getAllItems, getItem, updateItem, deleteItem, renameItem, searchAyahs, getAyahRange, logReview, getReviewLog, getStats, updateNotes, snoozeItem, rescheduleItem, undoReview, setDisplayName, createCircle, joinCircle, leaveCircle, getUserCircles, getCircleDetail, addCheer } from './database.js';
 import { applyReview as applySm2, type ReviewQuality } from './engine.js';
 import { applyReview as applyFsrs } from './fsrs.js';
 import { registerBillingRoutes } from './payments.js';
@@ -342,6 +342,114 @@ export function buildApp(dbPath: string): FastifyInstance {
       return reply.status(400).send({ error: 'invalid range' });
     const ayahs = getAyahRange(db, s, f, t);
     return reply.send(ayahs.map(a => ({ ...a, indopak: a.arabic })));
+  });
+
+  // PUT /api/me/display_name
+  app.put('/api/me/display_name', async (req, reply) => {
+    const { display_name } = req.body as { display_name?: string };
+    const user_id = userIdFrom(req);
+    if (!requireUserId(user_id, reply)) return;
+    const trimmed = (display_name ?? '').trim();
+    if (trimmed.length === 0) return reply.status(400).send({ error: 'display_name required' });
+    if (trimmed.length > 40) return reply.status(400).send({ error: 'display_name must be 40 characters or less' });
+    setDisplayName(db, user_id, trimmed);
+    return reply.send({ ok: true });
+  });
+
+  // POST /api/circles
+  app.post('/api/circles', async (req, reply) => {
+    const { name, description = '' } = req.body as { name?: string; description?: string };
+    const user_id = userIdFrom(req);
+    if (!requireUserId(user_id, reply)) return;
+    if (!name || !name.trim()) return reply.status(400).send({ error: 'name required' });
+    if (name.length > 60) return reply.status(400).send({ error: 'name must be 60 characters or less' });
+    if (description.length > 300) return reply.status(400).send({ error: 'description must be 300 characters or less' });
+    try {
+      const circle = createCircle(db, user_id, name.trim(), description.trim());
+      return reply.status(201).send(circle);
+    } catch (err: any) {
+      if (err.message === 'CIRCLE_CAP_REACHED')
+        return reply.status(403).send({ error: 'CIRCLE_CAP_REACHED', message: 'You can only join or create up to 5 circles.' });
+      throw err;
+    }
+  });
+
+  // POST /api/circles/join
+  app.post('/api/circles/join', {
+    config: { rateLimit: { max: 10, timeWindow: '1 minute' } },
+  }, async (req, reply) => {
+    const { invite_code } = req.body as { invite_code?: string };
+    const user_id = userIdFrom(req);
+    if (!requireUserId(user_id, reply)) return;
+    if (!invite_code || !invite_code.trim()) return reply.status(400).send({ error: 'invite_code required' });
+    try {
+      const circle = joinCircle(db, user_id, invite_code.trim().toUpperCase());
+      return reply.send(circle);
+    } catch (err: any) {
+      if (err.message === 'INVITE_NOT_FOUND')
+        return reply.status(404).send({ error: 'INVITE_NOT_FOUND', message: 'That invite code was not found.' });
+      if (err.message === 'CIRCLE_CAP_REACHED')
+        return reply.status(403).send({ error: 'CIRCLE_CAP_REACHED', message: 'You can only join or create up to 5 circles.' });
+      if (err.message === 'CIRCLE_FULL')
+        return reply.status(403).send({ error: 'CIRCLE_FULL', message: 'This circle is full (20 members max).' });
+      throw err;
+    }
+  });
+
+  // POST /api/circles/:id/leave
+  app.post('/api/circles/:id/leave', async (req, reply) => {
+    const { id } = req.params as { id: string };
+    const user_id = userIdFrom(req);
+    if (!requireUserId(user_id, reply)) return;
+    leaveCircle(db, user_id, id);
+    return reply.send({ ok: true });
+  });
+
+  // GET /api/circles
+  app.get('/api/circles', async (req, reply) => {
+    const user_id = userIdFrom(req);
+    if (!requireUserId(user_id, reply)) return;
+    return reply.send(getUserCircles(db, user_id));
+  });
+
+  // GET /api/circles/:id
+  app.get('/api/circles/:id', async (req, reply) => {
+    const { id } = req.params as { id: string };
+    const user_id = userIdFrom(req);
+    if (!requireUserId(user_id, reply)) return;
+    // Membership check BEFORE returning any data — the critical scoping boundary.
+    const myCircles = getUserCircles(db, user_id);
+    if (!myCircles.some(c => c.id === id))
+      return reply.status(404).send({ error: 'CIRCLE_NOT_FOUND' });
+    const detail = getCircleDetail(db, id);
+    if (!detail) return reply.status(404).send({ error: 'CIRCLE_NOT_FOUND' });
+    return reply.send(detail);
+  });
+
+  // POST /api/circles/:id/cheer/:userId
+  //
+  // NOTE: this route has a route param named `:userId`, which collides with
+  // one of userIdFrom's fallback lookup sources (req.params.userId). Here
+  // `:userId` is the CHEER TARGET's id, not the caller's — using userIdFrom
+  // as-is would be correct only because it checks the Authorization header
+  // first and returns immediately when present. To avoid relying on that
+  // implicit ordering for a security-relevant "who is the caller" decision,
+  // the caller's id is resolved directly from the header here.
+  app.post('/api/circles/:id/cheer/:userId', {
+    config: { rateLimit: { max: 20, timeWindow: '1 minute' } },
+  }, async (req, reply) => {
+    const { id, userId: targetUserId } = req.params as { id: string; userId: string };
+    const auth = req.headers['authorization'];
+    const user_id = typeof auth === 'string' && auth.startsWith('Bearer ') ? auth.slice(7).trim() : undefined;
+    if (!requireUserId(user_id, reply)) return;
+    const myCircles = getUserCircles(db, user_id);
+    if (!myCircles.some(c => c.id === id))
+      return reply.status(404).send({ error: 'CIRCLE_NOT_FOUND' });
+    const detail = getCircleDetail(db, id);
+    if (!detail || !detail.members.some(m => m.user_id === targetUserId))
+      return reply.status(404).send({ error: 'MEMBER_NOT_FOUND' });
+    addCheer(db, id, user_id, targetUserId);
+    return reply.send({ ok: true });
   });
 
   // Full data export ("your data is yours") — header-auth + legacy path variant.
