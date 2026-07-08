@@ -225,3 +225,31 @@ describe('snoozeItem with days', () => {
     expect(item!.next_due_date).toBeGreaterThanOrEqual(before + 7 * 86_400_000 - 100);
   });
 });
+
+describe('M3 migration: circles schema', () => {
+  it('adds a nullable display_name column to users', () => {
+    const db = initDb(':memory:');
+    db.prepare('INSERT INTO users (user_id) VALUES (?)').run('m3-test-user');
+    const cols = (db.prepare('PRAGMA table_info(users)').all() as { name: string }[]).map(c => c.name);
+    expect(cols).toContain('display_name');
+    const row = db.prepare('SELECT display_name FROM users WHERE user_id = ?').get('m3-test-user') as { display_name: string | null };
+    expect(row.display_name).toBeNull();
+  });
+
+  it('creates circles, circle_members, and circle_cheers tables', () => {
+    const db = initDb(':memory:');
+    const tableNames = (db.prepare("SELECT name FROM sqlite_master WHERE type='table'").all() as { name: string }[]).map(t => t.name);
+    expect(tableNames).toContain('circles');
+    expect(tableNames).toContain('circle_members');
+    expect(tableNames).toContain('circle_cheers');
+  });
+
+  it('enforces UNIQUE invite_code on circles', () => {
+    const db = initDb(':memory:');
+    db.exec(`INSERT INTO users (user_id) VALUES ('u1'), ('u2')`);
+    db.exec(`INSERT INTO circles (id, name, invite_code, creator_user_id, created_at) VALUES ('c1', 'Test', 'CODE1234', 'u1', ${Date.now()})`);
+    expect(() => {
+      db.exec(`INSERT INTO circles (id, name, invite_code, creator_user_id, created_at) VALUES ('c2', 'Test2', 'CODE1234', 'u2', ${Date.now()})`);
+    }).toThrow();
+  });
+});

@@ -103,6 +103,45 @@ export function initDb(dbPath: string): Db {
     })();
   }
 
+  if (schemaVersion < 3) {
+    // M3: display_name on users, plus circles/circle_members/circle_cheers tables
+    const userCols = (db.prepare('PRAGMA table_info(users)').all() as { name: string }[]).map(c => c.name);
+    if (!userCols.includes('display_name')) db.exec('ALTER TABLE users ADD COLUMN display_name TEXT');
+
+    db.exec(`
+      CREATE TABLE IF NOT EXISTS circles (
+        id              TEXT PRIMARY KEY,
+        name            TEXT NOT NULL,
+        description     TEXT NOT NULL DEFAULT '',
+        invite_code     TEXT NOT NULL UNIQUE,
+        creator_user_id TEXT NOT NULL,
+        created_at      INTEGER NOT NULL,
+        FOREIGN KEY (creator_user_id) REFERENCES users(user_id)
+      );
+
+      CREATE TABLE IF NOT EXISTS circle_members (
+        circle_id  TEXT NOT NULL,
+        user_id    TEXT NOT NULL,
+        joined_at  INTEGER NOT NULL,
+        PRIMARY KEY (circle_id, user_id),
+        FOREIGN KEY (circle_id) REFERENCES circles(id),
+        FOREIGN KEY (user_id) REFERENCES users(user_id)
+      );
+
+      CREATE TABLE IF NOT EXISTS circle_cheers (
+        id            INTEGER PRIMARY KEY AUTOINCREMENT,
+        circle_id     TEXT NOT NULL,
+        from_user_id  TEXT NOT NULL,
+        to_user_id    TEXT NOT NULL,
+        created_at    INTEGER NOT NULL,
+        FOREIGN KEY (circle_id) REFERENCES circles(id)
+      );
+      CREATE INDEX IF NOT EXISTS idx_cheers_to ON circle_cheers(circle_id, to_user_id);
+      CREATE INDEX IF NOT EXISTS idx_members_user ON circle_members(user_id);
+    `);
+    db.pragma('user_version = 3');
+  }
+
   db.exec(`CREATE INDEX IF NOT EXISTS idx_log_user ON review_log(user_id, reviewed_at);`);
 
   seedQuranIfEmpty(db);
