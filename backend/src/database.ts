@@ -422,3 +422,170 @@ export function getAyahRange(db: Db, surah: number, fromAyah: number, toAyah: nu
      ORDER BY ayah`
   ).all(surah, fromAyah, toAyah) as AyahRow[];
 }
+
+// ── Circles ──────────────────────────────────────────────────────────────────
+
+export interface CircleRow {
+  id: string;
+  name: string;
+  description: string;
+  invite_code: string;
+  creator_user_id: string;
+  created_at: number;
+}
+
+export interface CircleMemberDetail {
+  user_id: string;
+  display_name: string;
+  streak: number;
+  last_reviewed_item_id: string | null;
+  last_reviewed_at: number | null;
+  cheer_count: number;
+}
+
+export interface CircleDetail extends CircleRow {
+  members: CircleMemberDetail[];
+}
+
+const MAX_CIRCLES_PER_USER = 5;
+const MAX_MEMBERS_PER_CIRCLE = 20;
+
+function generateInviteCode(db: Db): string {
+  const chars = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789'; // no 0/O/1/I, avoids ambiguous codes
+  for (let attempt = 0; attempt < 10; attempt++) {
+    let code = '';
+    for (let i = 0; i < 8; i++) code += chars[Math.floor(Math.random() * chars.length)];
+    const existing = db.prepare('SELECT 1 FROM circles WHERE invite_code = ?').get(code);
+    if (!existing) return code;
+  }
+  throw new Error('COULD_NOT_GENERATE_INVITE_CODE');
+}
+
+export function setDisplayName(db: Db, userId: string, displayName: string): void {
+  db.prepare('UPDATE users SET display_name = ? WHERE user_id = ?').run(displayName, userId);
+}
+
+export function createCircle(db: Db, userId: string, name: string, description: string): CircleRow {
+  const count = (
+    db.prepare('SELECT COUNT(*) as n FROM circle_members WHERE user_id = ?').get(userId) as { n: number }
+  ).n;
+  if (count >= MAX_CIRCLES_PER_USER) throw new Error('CIRCLE_CAP_REACHED');
+
+  const id = `circle_${Date.now()}_${Math.floor(Math.random() * 1_000_000)}`;
+  const invite_code = generateInviteCode(db);
+  const created_at = Date.now();
+
+  db.transaction(() => {
+    db.prepare(
+      'INSERT INTO circles (id, name, description, invite_code, creator_user_id, created_at) VALUES (?, ?, ?, ?, ?, ?)'
+    ).run(id, name, description, invite_code, userId, created_at);
+    db.prepare(
+      'INSERT INTO circle_members (circle_id, user_id, joined_at) VALUES (?, ?, ?)'
+    ).run(id, userId, created_at);
+  })();
+
+  return { id, name, description, invite_code, creator_user_id: userId, created_at };
+}
+
+export function joinCircle(db: Db, userId: string, inviteCode: string): CircleRow {
+  const circle = db.prepare('SELECT * FROM circles WHERE invite_code = ?').get(inviteCode) as CircleRow | undefined;
+  if (!circle) throw new Error('INVITE_NOT_FOUND');
+
+  const alreadyMember = db.prepare(
+    'SELECT 1 FROM circle_members WHERE circle_id = ? AND user_id = ?'
+  ).get(circle.id, userId);
+  if (alreadyMember) return circle; // idempotent — already joined, no-op success
+
+  const userCircleCount = (
+    db.prepare('SELECT COUNT(*) as n FROM circle_members WHERE user_id = ?').get(userId) as { n: number }
+  ).n;
+  if (userCircleCount >= MAX_CIRCLES_PER_USER) throw new Error('CIRCLE_CAP_REACHED');
+
+  const memberCount = (
+    db.prepare('SELECT COUNT(*) as n FROM circle_members WHERE circle_id = ?').get(circle.id) as { n: number }
+  ).n;
+  if (memberCount >= MAX_MEMBERS_PER_CIRCLE) throw new Error('CIRCLE_FULL');
+
+  db.prepare('INSERT INTO circle_members (circle_id, user_id, joined_at) VALUES (?, ?, ?)')
+    .run(circle.id, userId, Date.now());
+
+  return circle;
+}
+
+export function leaveCircle(db: Db, userId: string, circleId: string): void {
+  db.transaction(() => {
+    db.prepare('DELETE FROM circle_members WHERE circle_id = ? AND user_id = ?').run(circleId, userId);
+    const remaining = (
+      db.prepare('SELECT COUNT(*) as n FROM circle_members WHERE circle_id = ?').get(circleId) as { n: number }
+    ).n;
+    if (remaining === 0) {
+      db.prepare('DELETE FROM circle_cheers WHERE circle_id = ?').run(circleId);
+      db.prepare('DELETE FROM circles WHERE id = ?').run(circleId);
+    }
+  })();
+}
+
+export function getUserCircles(db: Db, userId: string): (CircleRow & { member_count: number })[] {
+  return db.prepare(
+    `SELECT c.*, (SELECT COUNT(*) FROM circle_members cm2 WHERE cm2.circle_id = c.id) as member_count
+     FROM circles c
+     JOIN circle_members cm ON cm.circle_id = c.id
+     WHERE cm.user_id = ?
+     ORDER BY c.created_at DESC`
+  ).all(userId) as (CircleRow & { member_count: number })[];
+}
+
+/** Streak = consecutive days with at least 1 review, counting back from today (UTC calendar days). */
+function calcStreakFromTimestamps(timestamps: number[]): number {
+  const dayStrings = new Set(timestamps.map(t => new Date(t).toISOString().slice(0, 10)));
+  let streak = 0;
+  const cursor = new Date();
+  for (;;) {
+    const dayStr = cursor.toISOString().slice(0, 10);
+    if (dayStrings.has(dayStr)) {
+      streak++;
+      cursor.setUTCDate(cursor.getUTCDate() - 1);
+    } else {
+      break;
+    }
+  }
+  return streak;
+}
+
+export function getCircleDetail(db: Db, circleId: string): CircleDetail | null {
+  const circle = db.prepare('SELECT * FROM circles WHERE id = ?').get(circleId) as CircleRow | undefined;
+  if (!circle) return null;
+
+  const memberIds = (
+    db.prepare('SELECT user_id FROM circle_members WHERE circle_id = ?').all(circleId) as { user_id: string }[]
+  ).map(r => r.user_id);
+
+  const members: CircleMemberDetail[] = memberIds.map(userId => {
+    const user = db.prepare('SELECT display_name FROM users WHERE user_id = ?').get(userId) as { display_name: string | null } | undefined;
+    const reviewTimestamps = (
+      db.prepare('SELECT reviewed_at FROM review_log WHERE user_id = ?').all(userId) as { reviewed_at: number }[]
+    ).map(r => r.reviewed_at);
+    const lastReview = db.prepare(
+      'SELECT item_id, reviewed_at FROM review_log WHERE user_id = ? ORDER BY reviewed_at DESC LIMIT 1'
+    ).get(userId) as { item_id: string; reviewed_at: number } | undefined;
+    const cheerCount = (
+      db.prepare('SELECT COUNT(*) as n FROM circle_cheers WHERE circle_id = ? AND to_user_id = ?').get(circleId, userId) as { n: number }
+    ).n;
+
+    return {
+      user_id: userId,
+      display_name: user?.display_name ?? 'Anonymous',
+      streak: calcStreakFromTimestamps(reviewTimestamps),
+      last_reviewed_item_id: lastReview?.item_id ?? null,
+      last_reviewed_at: lastReview?.reviewed_at ?? null,
+      cheer_count: cheerCount,
+    };
+  });
+
+  return { ...circle, members };
+}
+
+export function addCheer(db: Db, circleId: string, fromUserId: string, toUserId: string): void {
+  db.prepare('INSERT INTO circle_cheers (circle_id, from_user_id, to_user_id, created_at) VALUES (?, ?, ?, ?)')
+    .run(circleId, fromUserId, toUserId, Date.now());
+}
