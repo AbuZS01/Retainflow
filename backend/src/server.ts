@@ -6,7 +6,7 @@ import fastifyCompress from '@fastify/compress';
 import rateLimit from '@fastify/rate-limit';
 import { fileURLToPath } from 'url';
 import path from 'path';
-import { initDb, createUser, addItem, getDueItems, getAllItems, getItem, updateItem, deleteItem, renameItem, searchAyahs, getAyahRange, logReview, getReviewLog, getStats, updateNotes, snoozeItem, rescheduleItem, undoReview, setDisplayName, createCircle, joinCircle, leaveCircle, getUserCircles, getCircleDetail, addCheer } from './database.js';
+import { initDb, createUser, addItem, getDueItems, getAllItems, getItem, updateItem, deleteItem, renameItem, searchAyahs, getAyahRange, logReview, getReviewLog, getStats, updateNotes, snoozeItem, rescheduleItem, undoReview, setDisplayName, createCircle, joinCircle, leaveCircle, getUserCircles, getCircleDetail, addCheer, MAX_CIRCLES_PER_USER, MAX_MEMBERS_PER_CIRCLE } from './database.js';
 import { applyReview as applySm2, type ReviewQuality } from './engine.js';
 import { applyReview as applyFsrs } from './fsrs.js';
 import { registerBillingRoutes } from './payments.js';
@@ -369,7 +369,7 @@ export function buildApp(dbPath: string): FastifyInstance {
       return reply.status(201).send(circle);
     } catch (err: any) {
       if (err.message === 'CIRCLE_CAP_REACHED')
-        return reply.status(403).send({ error: 'CIRCLE_CAP_REACHED', message: 'You can only join or create up to 5 circles.' });
+        return reply.status(403).send({ error: 'CIRCLE_CAP_REACHED', message: `You can only join or create up to ${MAX_CIRCLES_PER_USER} circles.` });
       throw err;
     }
   });
@@ -389,9 +389,9 @@ export function buildApp(dbPath: string): FastifyInstance {
       if (err.message === 'INVITE_NOT_FOUND')
         return reply.status(404).send({ error: 'INVITE_NOT_FOUND', message: 'That invite code was not found.' });
       if (err.message === 'CIRCLE_CAP_REACHED')
-        return reply.status(403).send({ error: 'CIRCLE_CAP_REACHED', message: 'You can only join or create up to 5 circles.' });
+        return reply.status(403).send({ error: 'CIRCLE_CAP_REACHED', message: `You can only join or create up to ${MAX_CIRCLES_PER_USER} circles.` });
       if (err.message === 'CIRCLE_FULL')
-        return reply.status(403).send({ error: 'CIRCLE_FULL', message: 'This circle is full (20 members max).' });
+        return reply.status(403).send({ error: 'CIRCLE_FULL', message: `This circle is full (${MAX_MEMBERS_PER_CIRCLE} members max).` });
       throw err;
     }
   });

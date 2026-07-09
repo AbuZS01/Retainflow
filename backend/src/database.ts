@@ -448,8 +448,8 @@ export interface CircleDetail extends CircleRow {
   members: CircleMemberDetail[];
 }
 
-const MAX_CIRCLES_PER_USER = 5;
-const MAX_MEMBERS_PER_CIRCLE = 20;
+export const MAX_CIRCLES_PER_USER = 5;
+export const MAX_MEMBERS_PER_CIRCLE = 20;
 
 function generateInviteCode(db: Db): string {
   const chars = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789'; // no 0/O/1/I, avoids ambiguous codes
