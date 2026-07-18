@@ -75,10 +75,17 @@ export function buildApp(dbPath: string): FastifyInstance {
   // Gzip/Brotli compression for all text responses
   app.register(fastifyCompress, { global: true });
 
-  // Rate limiting: 60 req/min globally
+  // Rate limiting: 150 req/min globally. Raised from 60 — the client's
+  // "add a whole Juz" flow (app/add.tsx in muraja-native) does two
+  // sequential requests (GET /api/quran/.../..., POST /api/items) per
+  // surah-segment in the Juz, and Juz 30 alone has 37 segments = 74
+  // requests in one user action. At 60/min those would always spill into a
+  // 429 partway through a single Juz-30 add — this isn't abuse, it's the
+  // app's own advertised "takes under a minute" bulk-add feature running
+  // into a limit that was never sized for it.
   app.register(rateLimit, {
     global: true,
-    max: 60,
+    max: 150,
     timeWindow: '1 minute',
   });
 
@@ -108,7 +115,12 @@ export function buildApp(dbPath: string): FastifyInstance {
 
   // POST /api/items
   app.post('/api/items', {
-    config: { rateLimit: { max: 10, timeWindow: '1 minute' } },
+    // Raised from 10 — a single "add a whole Juz" action (app/add.tsx in
+    // muraja-native) posts one item per surah-segment in the Juz, up to 37
+    // for Juz 30. 10/min meant the first 10 succeeded and the rest silently
+    // 429'd, which the client's per-item try/catch swallowed into a bare
+    // "Could not add this Juz" with no useful detail.
+    config: { rateLimit: { max: 45, timeWindow: '1 minute' } },
   }, async (req, reply) => {
     const { user_id, item_id, content = '', initial } = req.body as {
       user_id?: string;
